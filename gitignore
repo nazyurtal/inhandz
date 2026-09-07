@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node (only if you add tooling later)
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Local dev servers / build output
+dist/
+.cache/
+
+# Exports produced by the app while testing
+*-inhandz.png
+*-inhandz.jpg
+inhandz-settings.json
