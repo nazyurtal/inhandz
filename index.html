@@ -1,0 +1,2776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>inhandz — hand-drawn sketch studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-page:#ececea;
+    --bg-panel:#ffffff;
+    --bg-stage:#f4f4f2;
+    --border:#e8e7e2;
+    --border-strong:#d8d7d0;
+    --text:#181816;
+    --text-dim:#83817a;
+    --text-faint:#adaba1;
+    --dark:#151513;
+    --dark-hover:#000000;
+    --pill-bg:#f0f0ed;
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{ height:100%; margin:0; }
+  body{
+    background:var(--bg-page); color:var(--text);
+    display:flex; height:100vh; height:100dvh; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{ font-family:inherit; }
+
+  .app{ width:100%; height:100vh; height:100dvh; background:var(--bg-panel); display:flex; flex-direction:column; overflow:hidden; }
+
+  /* topbar */
+  .topbar{ height:60px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-bottom:1px solid var(--border); gap:12px; }
+  .topbar-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .brand{ display:flex; align-items:center; gap:9px; min-width:0; text-decoration:none; color:inherit; }
+  .brand-mark{ width:38px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .brand-mark svg{ width:38px; height:32px; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .brand-mark .scratch{ stroke:var(--text); stroke-width:2.1; stroke-dasharray:200; stroke-dashoffset:200;
+    animation:scribble 1.1s cubic-bezier(.6,.05,.3,1) forwards; }
+  @keyframes scribble{ to{ stroke-dashoffset:0; } }
+  .brand-text{ display:flex; flex-direction:column; line-height:1; min-width:0; }
+  .brand-title{ font-family:'Caveat','Segoe Script','Bradley Hand','Brush Script MT',cursive; font-size:29px; font-weight:700;
+    white-space:nowrap; line-height:1; letter-spacing:-.01em; }
+  .brand-title .dot{ color:var(--accent-ink, #c1553f); }
+
+  .topbar-tools{ display:flex; align-items:center; gap:5px; background:var(--pill-bg); padding:5px; border-radius:12px; }
+  .icon-btn{ width:33px; height:33px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--text);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; flex-shrink:0; }
+  .icon-btn svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .icon-btn:hover{ background:rgba(0,0,0,0.06); }
+  .icon-btn.active{ background:#fff; border:1px solid var(--border-strong); }
+  .icon-btn[disabled]{ opacity:.35; cursor:not-allowed; }
+  .icon-btn[disabled]:hover{ background:transparent; }
+  .sep{ width:1px; height:19px; background:var(--border-strong); margin:0 2px; }
+
+  .zoom-wrap{ display:flex; align-items:center; gap:2px; }
+  .zoom-label{ font-size:12px; font-weight:500; min-width:42px; text-align:center; font-variant-numeric:tabular-nums; cursor:pointer; }
+
+  [data-tip]{ position:relative; }
+  [data-tip]::after{ content:attr(data-tip); position:absolute; top:calc(100% + 9px); left:50%; transform:translateX(-50%);
+    background:#171715; color:#fff; font-size:11px; font-weight:500; padding:5px 9px; border-radius:6px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:opacity .12s ease; z-index:60; }
+  [data-tip]:hover::after{ opacity:1; transition-delay:.4s; }
+
+  .topbar-right{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .btn{ font-size:13px; font-weight:500; padding:0 15px; height:35px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; border:1px solid transparent; white-space:nowrap; }
+  .btn svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .btn-ghost{ background:transparent; border-color:var(--border-strong); color:var(--text); }
+  .btn-ghost:hover{ background:var(--pill-bg); }
+  .btn-dark{ background:var(--dark); color:#fff; }
+  .btn-dark:hover{ background:var(--dark-hover); }
+  .btn[disabled]{ opacity:.4; cursor:not-allowed; }
+
+  main{ flex:1; display:flex; min-height:0; position:relative; }
+  body.focus .side-panel{ display:none; }
+  .side-panel{ width:268px; flex-shrink:0; background:var(--bg-panel); display:flex; flex-direction:column; min-height:0; }
+  .right-panel{ border-left:1px solid var(--border); }
+
+  .panel-head{ padding:16px 16px 13px; min-height:56px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .panel-head .t{ font-size:13px; font-weight:600; }
+  .panel-head .s{ font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+  .panel-search{ position:relative; margin:10px 16px 2px; display:flex; align-items:center; }
+  .panel-search svg{ position:absolute; left:9px; width:14px; height:14px; stroke:var(--text-faint); fill:none; stroke-width:2; pointer-events:none; }
+  .panel-search input{ width:100%; font:inherit; font-size:12.5px; padding:7px 26px 7px 28px; border:1px solid var(--border-strong);
+    border-radius:9px; background:var(--bg-panel); color:var(--text); outline:none; }
+  .panel-search input:focus{ border-color:var(--text-dim); }
+  .panel-search button{ position:absolute; right:6px; width:18px; height:18px; border:none; background:var(--pill-bg);
+    color:var(--text-dim); border-radius:50%; cursor:pointer; font-size:13px; line-height:1; display:none; }
+  body.searching .panel-search button{ display:block; }
+  body.searching #segTabs{ display:none; }
+  body.searching .draw-only{ display:none; }
+  .field.search-hit .field-label span:first-child{ color:var(--text); font-weight:600; }
+  .group.search-hide, .field.search-hide, .opt-chips.search-hide, .swatch-row.search-hide,
+  .theme-grid.search-hide, .ink-palette.search-hide, .paper-chips.search-hide, .note.search-hide, .style-grid.search-hide{ display:none; }
+  .seg{ display:flex; background:var(--pill-bg); border-radius:9px; padding:3px; margin:12px 16px 4px; gap:2px; }
+  .seg-btn{ flex:1; border:1px solid transparent; background:transparent; font-size:12px; font-weight:500; color:var(--text-dim); padding:7px 0; border-radius:7px; cursor:pointer; }
+  .seg-btn.active{ background:#fff; color:var(--text); border:1px solid var(--border-strong); }
+
+  .panel-scroll{ flex:1; overflow-y:auto; padding:4px 10px 16px; }
+  .effects-strip{ padding:8px 10px 4px; border-bottom:1px solid var(--border); }
+  body:not(.tab-draw) .draw-only{ display:none; }
+  .pinned{ padding:11px 16px; border-bottom:1px solid var(--border); background:var(--bg-panel); }
+
+  .layer-hint{ font-size:11.5px; color:var(--text-faint); line-height:1.5; padding:6px 8px 10px; }
+  .layer-row{ display:flex; align-items:center; gap:10px; padding:8px; border-radius:9px; }
+  .layer-row:hover{ background:var(--bg-stage); }
+  .layer-icon{ width:27px; height:27px; border-radius:7px; background:var(--bg-stage); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .layer-icon svg{ width:14px; height:14px; stroke:var(--text-dim); fill:none; stroke-width:1.8; }
+  .layer-name{ font-size:12.6px; font-weight:500; flex:1; min-width:0; }
+  .layer-toggle{ width:26px; height:26px; border-radius:7px; border:none; background:transparent; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; flex-shrink:0; color:var(--text-faint); }
+  .layer-toggle:hover{ background:rgba(0,0,0,0.06); color:var(--text); }
+  .layer-toggle.on{ color:var(--text); }
+  .layer-toggle svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; }
+
+  .info-empty{ padding:18px 10px; font-size:12.3px; color:var(--text-faint); text-align:center; line-height:1.6; }
+  .info-row{ display:flex; justify-content:space-between; padding:9px 8px; font-size:12.2px; border-bottom:1px solid var(--border); }
+  .info-row span:first-child{ color:var(--text-faint); }
+  .info-row span:last-child{ font-weight:500; max-width:150px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kbd-row{ display:flex; justify-content:space-between; align-items:center; padding:7px 8px; font-size:12.2px; }
+  .kbd-row span{ color:var(--text-dim); }
+  kbd{ font-family:inherit; font-size:10.5px; background:var(--pill-bg); border:1px solid var(--border-strong);
+    border-radius:5px; padding:2px 6px; color:var(--text); }
+
+  .btn-block{ width:100%; justify-content:center; }
+
+  .group{ padding:0 6px; border-bottom:1px solid var(--border); }
+  .group:last-child{ border-bottom:none; }
+  .group-title{ font-size:10.5px; font-weight:600; color:var(--text-faint); letter-spacing:.05em; text-transform:uppercase;
+    padding:11px 8px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+  .group-title:hover{ color:var(--text); }
+  .group-title .caret{ width:7px; height:7px; display:inline-block; border-right:1.4px solid currentColor; border-bottom:1.4px solid currentColor;
+    transform:rotate(45deg) translate(-2px,-2px); transition:transform .15s ease; }
+  .group.collapsed .group-title .caret{ transform:rotate(-45deg) translate(-1px,-1px); }
+  .group.collapsed > *:not(.group-title){ display:none; }
+  .group-body-pad{ padding-bottom:8px; }
+  .field{ padding:0 8px; margin-bottom:9px; }
+  .field:last-child{ margin-bottom:4px; }
+  .field-label{ display:flex; justify-content:space-between; font-size:11.8px; margin-bottom:5px; color:var(--text-dim); }
+  .field-label .val{ color:var(--text); font-weight:500; font-variant-numeric:tabular-nums; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px; background:var(--border-strong); outline:none; margin:0; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#fff;
+    cursor:pointer; border:1.5px solid var(--text); }
+  input[type=range]::-moz-range-thumb{ width:13px; height:13px; border-radius:50%; background:#fff; border:1.5px solid var(--text); cursor:pointer; }
+
+  .style-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; padding:0 8px 8px; }
+  .style-btn{ border:1.5px solid var(--border); background:#fff; border-radius:9px; padding:6px 3px; cursor:pointer; text-align:center; }
+  .style-btn:hover{ border-color:var(--border-strong); }
+  .style-btn.active{ border-color:var(--text); }
+  .style-btn svg{ width:100%; height:22px; margin-bottom:3px; }
+  .style-btn .n{ font-size:9.5px; font-weight:600; line-height:1.15; }
+
+  .opt-chips{ display:flex; flex-wrap:wrap; gap:5px; padding:0 8px 9px; }
+  .opt-chip{ border:1.5px solid var(--border); background:#fff; border-radius:7px; padding:4.5px 8px;
+    font-size:11px; font-weight:500; color:var(--text-dim); cursor:pointer; }
+  .opt-chip:hover{ border-color:var(--border-strong); color:var(--text); }
+  .opt-chip.active{ border-color:var(--text); color:var(--text); background:var(--pill-bg); }
+
+  .swatch-row{ display:flex; align-items:center; gap:9px; padding:5px 8px; border-radius:9px; }
+  .swatch-row:hover{ background:var(--bg-stage); }
+  .swatch-circle{ width:25px; height:25px; border-radius:50%; border:1px solid var(--border-strong); position:relative; overflow:hidden; flex-shrink:0; cursor:pointer; }
+  .swatch-circle input[type=color]{ position:absolute; inset:-4px; width:34px; height:34px; border:none; padding:0; cursor:pointer; }
+  .swatch-label{ font-size:12.5px; font-weight:500; flex:1; }
+  .swatch-hex{ font-size:11px; color:var(--text-faint); font-variant-numeric:tabular-nums; }
+
+  .ink-palette{ display:flex; flex-wrap:wrap; gap:5px; padding:4px 8px 8px; }
+  .ink-swatch{ width:20px; height:20px; border-radius:50%; border:1px solid rgba(0,0,0,0.15); cursor:pointer; padding:0; }
+  .ink-swatch:hover{ transform:scale(1.12); }
+  .ink-swatch.active{ box-shadow:0 0 0 2px var(--bg-panel), 0 0 0 3.5px var(--text); }
+  .theme-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:2px 8px 8px; }
+  .theme-btn{ border:1.5px solid var(--border); border-radius:8px; padding:6px; cursor:pointer; background:#fff;
+    display:flex; align-items:center; gap:7px; }
+  .theme-btn:hover{ border-color:var(--border-strong); }
+  .theme-swatches{ display:flex; flex-shrink:0; }
+  .theme-swatches span{ width:13px; height:13px; border-radius:50%; margin-left:-4px; border:1.5px solid #fff; }
+  .theme-swatches span:first-child{ margin-left:0; }
+  .theme-name{ font-size:10.5px; font-weight:600; color:var(--text); line-height:1.1; text-align:left; }
+  .paper-chips{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 8px 8px; }
+  .chip{ border:1px solid var(--border); background:#fff; border-radius:20px; padding:5px 11px; font-size:11.5px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .chip:hover{ border-color:var(--border-strong); }
+  .chip .dot{ width:11px; height:11px; border-radius:50%; border:1px solid rgba(0,0,0,0.12); }
+
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:5px 8px; }
+  .toggle-row .lbl{ font-size:12.6px; font-weight:500; }
+  .switch{ position:relative; width:37px; height:21px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .track{ position:absolute; inset:0; background:var(--border-strong); border-radius:20px; transition:background .15s ease; cursor:pointer; }
+  .switch .track::before{ content:""; position:absolute; width:15px; height:15px; left:3px; top:3px; background:#fff; border-radius:50%;
+    transition:transform .15s ease; }
+  .switch input:checked + .track{ background:var(--dark); }
+  .switch input:checked + .track::before{ transform:translateX(16px); }
+
+  /* stage */
+  .stage-col{ flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg-stage); }
+  .stage{ flex:1; display:flex; align-items:center; justify-content:center; padding:24px; min-height:0; position:relative; overflow:hidden; }
+  #dropZone{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:14px; position:relative; }
+  #dropZone.drag{ outline:2px dashed var(--text-dim); outline-offset:-2px; background:rgba(0,0,0,0.02); }
+  #canvasWrap{ position:relative; border:1px solid var(--border-strong); border-radius:3px; background:#fff; cursor:grab; }
+  #canvasWrap.cutout{ border-color:transparent; background:transparent; }
+  #canvasWrap.cutout canvas{ filter:none; }
+  #canvasWrap.panning{ cursor:grabbing; }
+  canvas#view{ display:block; max-width:100%; max-height:100%; border-radius:3px; }
+
+  #splitHandle{ position:absolute; top:0; bottom:0; width:2px; background:var(--text); left:50%; display:none; cursor:ew-resize; z-index:5; }
+  #splitHandle::after{ content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:32px; height:32px;
+    border-radius:50%; background:#fff; border:1.5px solid var(--text);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23181816' stroke-width='2.2' stroke-linecap='round'%3E%3Cpolyline points='15 18 9 12 15 6' transform='translate(-3 0)'/%3E%3Cpolyline points='9 18 15 12 9 6' transform='translate(3 0)'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:center; }
+  #splitHandle .tag{ position:absolute; top:12px; left:8px; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; padding:3px 7px; border-radius:5px; white-space:nowrap; }
+
+  #empty{ text-align:center; color:var(--text-dim); max-width:290px; }
+  #empty .empty-icon{ width:50px; height:50px; border-radius:14px; background:#fff; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 15px; }
+  #empty .empty-icon svg{ width:21px; height:21px; stroke:var(--text-dim); fill:none; stroke-width:1.6; }
+  #empty b{ display:block; color:var(--text); font-size:15px; margin-bottom:5px; font-weight:600; }
+  #empty p{ margin:0; font-size:12.6px; line-height:1.6; }
+  #empty button{ margin-top:15px; background:var(--dark); color:#fff; border:none; padding:9px 18px; font-size:12.6px; font-weight:500; border-radius:9px; cursor:pointer; }
+  #empty button:hover{ background:var(--dark-hover); }
+  #fileInput{ display:none; }
+
+  /* variations popover */
+  .variations{ position:absolute; left:24px; bottom:20px; width:240px; background:#fff; border:1px solid var(--border);
+    border-radius:14px; padding:12px; z-index:12; display:none; }
+  .variations.show{ display:block; }
+  .var-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .var-head .t{ font-size:12.5px; font-weight:600; }
+  .var-head .c{ font-size:11px; color:var(--text-faint); }
+  .var-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .var-cell{ border:1.5px solid var(--border); border-radius:9px; overflow:hidden; cursor:pointer; background:var(--bg-stage); aspect-ratio:1; padding:0; }
+  .var-cell canvas{ width:100%; height:100%; display:block; object-fit:cover; }
+  .var-cell:hover{ border-color:var(--border-strong); }
+  .var-cell.active{ border-color:var(--text); }
+  .var-more{ width:100%; margin-top:9px; }
+
+  /* batch filmstrip */
+  .filmstrip{ display:none; gap:8px; padding:0 20px 14px; overflow-x:auto; flex-shrink:0; align-items:center; }
+  .filmstrip.show{ display:flex; }
+  .film-item{ position:relative; width:54px; height:54px; border-radius:9px; overflow:hidden; border:1.5px solid var(--border);
+    flex-shrink:0; cursor:pointer; background:#fff; padding:0; }
+  .film-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .film-item.active{ border-color:var(--text); }
+  .film-item .rm{ position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.6);
+    color:#fff; font-size:11px; line-height:14px; border:none; cursor:pointer; display:none; padding:0; }
+  .film-item:hover .rm{ display:block; }
+  .film-count{ font-size:11.5px; color:var(--text-faint); white-space:nowrap; margin-left:2px; }
+
+  /* export sheet */
+  .sheet-backdrop{ position:fixed; inset:0; background:rgba(10,10,8,0.35); display:none; align-items:center; justify-content:center; z-index:70; padding:20px; }
+  .sheet-backdrop.show{ display:flex; }
+  .sheet{ background:#fff; border:1px solid var(--border-strong); border-radius:16px; width:100%; max-width:380px; padding:20px; }
+  .sheet h3{ margin:0 0 4px; font-size:15px; }
+  .sheet .sub{ font-size:12.2px; color:var(--text-faint); margin-bottom:16px; }
+  .opt-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border); font-size:12.8px; }
+  .segmini{ display:flex; background:var(--pill-bg); border-radius:8px; padding:2px; gap:2px; }
+  .segmini button{ border:1px solid transparent; background:transparent; font-size:11.5px; font-weight:500; color:var(--text-dim); padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .segmini button.active{ background:#fff; color:var(--text); border:1px solid var(--border-strong); }
+  .sheet-actions{ display:flex; gap:8px; margin-top:18px; }
+  .sheet-actions .btn{ flex:1; justify-content:center; }
+
+  /* toast */
+  .toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); background:#171715; color:#fff;
+    font-size:12.5px; padding:10px 16px; border-radius:10px; opacity:0; pointer-events:none; transition:all .2s ease; z-index:90; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* a dot on a collapsed group tells you something inside it was changed */
+  .field-label .val{ cursor:pointer; }
+  .field-label .val:hover{ text-decoration:underline dotted; }
+  .field.changed .field-label span:first-child::before{
+    content:"•"; color:var(--text); margin-right:4px; font-size:14px; line-height:0; vertical-align:middle; }
+
+  .is-off{ opacity:.35; pointer-events:none; }
+  body.no-image .right-panel .pinned,
+  body.no-image .right-panel .panel-scroll,
+  body.no-image .right-panel .panel-foot{ opacity:.35; pointer-events:none; }
+  .group.is-off .group-title{ pointer-events:auto; }
+  .note{ font-size:10.5px; color:var(--text-faint); padding:0 8px 9px; line-height:1.45; }
+
+  .panel-foot{ padding:10px 16px 14px; border-top:1px solid var(--border); }
+  .foot-row{ display:flex; gap:7px; }
+  .foot-row .btn{ flex:1; justify-content:center; }
+
+  /* drop anywhere, not just on the canvas */
+  .dropveil{ position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center;
+    background:rgba(244,244,242,0.92); }
+  .dropveil.show{ display:flex; }
+  .dropveil .inner{ border:2px dashed var(--text-dim); border-radius:18px; padding:38px 54px; text-align:center; }
+  .dropveil b{ display:block; font-size:16px; margin-bottom:4px; }
+  .dropveil span{ font-size:12.5px; color:var(--text-dim); }
+
+  .busy{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:85;
+    background:#171715; color:#fff; font-size:12.5px; padding:11px 18px; border-radius:10px; display:none; }
+  .busy.show{ display:block; }
+
+  .peeking #canvasWrap::after{ content:"Original"; position:absolute; left:8px; top:8px; background:rgba(0,0,0,.6);
+    color:#fff; font-size:10.5px; padding:3px 7px; border-radius:5px; }
+
+  :focus-visible{ outline:2px solid var(--text); outline-offset:2px; border-radius:4px; }
+
+  .backdrop{ position:fixed; inset:0; background:rgba(10,10,8,0.35); opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:30; }
+  .backdrop.show{ opacity:1; pointer-events:auto; }
+  .panel-close{ display:none; }
+
+  @media (min-width:1600px){ .side-panel{ width:300px; } }
+  @media (max-width:1080px){ .side-panel{ width:238px; } }
+  @media (max-width:900px){
+    .topbar-tools{ display:none; }
+    .mobile-toggle{ display:flex !important; }
+    .side-panel{ position:fixed; top:0; bottom:0; width:82vw; max-width:310px; z-index:31; transition:transform .2s ease; }
+    .right-panel{ right:0; transform:translateX(100%); border-left:1px solid var(--border-strong); }
+    .right-panel.open{ transform:translateX(0); }
+    .panel-close{ display:flex; }
+    .stage{ padding:14px; }
+      .variations{ left:12px; right:12px; bottom:12px; width:auto; }
+  }
+  @media (max-width:480px){
+    .btn span.label{ display:none; }
+    .btn{ padding:0 12px; }
+    }
+</style>
+</head>
+<body class="no-image">
+
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <a class="brand" href="#" onclick="return false;">
+        <div class="brand-mark">
+          <svg viewBox="0 0 40 34">
+            <path class="scratch" d="M4 25.5 C7.5 12.5 13 6 17.5 8.5 C21 10.5 18 19 14 22.5 C10.5 25.5 7 24 8.5 20 C10.5 14.5 19 9.5 26 10.5 C32.5 11.5 36.5 17 34 22"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">inhandz<span class="dot">.</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="topbar-tools">
+      <button class="icon-btn" id="splitBtn" disabled data-tip="Split compare (C)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+      </button>
+      <button class="icon-btn" id="focusBtn" disabled data-tip="Focus mode (F)">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="icon-btn" id="varBtn" disabled data-tip="Variations (V)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </button>
+      <button class="icon-btn" id="looksBtn" disabled data-tip="Cycle a preset look (L)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="16" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="surpriseBtn" disabled data-tip="Surprise me (S)">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8"/><polyline points="20 4 20 9 15 9"/><path d="M20 12a8 8 0 0 1-8 8 8 8 0 0 1-8-8"/><polyline points="4 20 4 15 9 15"/></svg>
+      </button>
+      <button class="icon-btn" id="rerollBtn" disabled data-tip="New take (R)">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <div class="sep"></div>
+      <div class="zoom-wrap">
+        <button class="icon-btn" id="zoomOut" disabled data-tip="Zoom out"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <div class="zoom-label" id="zoomLabel" data-tip="Reset to fit">100%</div>
+        <button class="icon-btn" id="zoomIn" disabled data-tip="Zoom in"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      </div>
+      <div class="sep"></div>
+      <button class="icon-btn" id="undoBtn" disabled data-tip="Undo ⌘Z">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </button>
+      <button class="icon-btn" id="redoBtn" disabled data-tip="Redo ⇧⌘Z">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <button class="icon-btn mobile-toggle" id="openRight" style="display:none;" data-tip="Adjust">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      </button>
+      <button class="btn btn-ghost" id="openBtn" data-tip="Open an image (O)">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="label">Open</span>
+      </button>
+      <button class="btn btn-ghost" id="copyBtn" disabled data-tip="Copy image to clipboard">
+        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="label">Copy</span>
+      </button>
+      <button class="btn btn-dark" id="exportBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="label">Export</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="backdrop" id="backdrop"></div>
+
+    <!-- STAGE -->
+    <section class="stage-col">
+      <div class="stage">
+        <div id="dropZone">
+          <div id="empty">
+            <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <b>Drop an image</b>
+            <p>Drag a file here, paste from your clipboard, or browse your device.</p>
+            <button id="pickBtn">Choose file</button>
+          </div>
+          <div id="canvasWrap" style="display:none;">
+            <canvas id="view"></canvas>
+            <div id="splitHandle"><div class="tag">Original</div></div>
+          </div>
+        </div>
+
+        <div class="variations" id="variations">
+          <div class="var-head">
+            <div class="t">Variations</div>
+            <div class="c" id="varCount">4 takes</div>
+          </div>
+          <div class="var-grid" id="varGrid"></div>
+          <button class="btn btn-ghost btn-block var-more" id="varMore">Shuffle again</button>
+        </div>
+
+        <input type="file" id="fileInput" accept="image/*,.svg" multiple>
+      </div>
+
+      <div class="filmstrip" id="filmstrip"></div>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="side-panel right-panel" id="rightPanel">
+      <div class="panel-head">
+        <div class="t">Adjustments</div>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <button class="icon-btn" id="infoBtn" data-tip="Image info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.5" fill="currentColor"/></svg></button>
+          <button class="icon-btn panel-close" id="closeRight"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </div>
+
+      <div class="panel-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input type="text" id="settingSearch" placeholder="Search settings…" autocomplete="off">
+        <button id="searchClear" title="Clear" aria-label="Clear search">×</button>
+      </div>
+      <div class="seg" id="segTabs">
+        <button class="seg-btn active" data-rtab="draw">Draw</button>
+        <button class="seg-btn" data-rtab="colour">Colour</button>
+        <button class="seg-btn" data-rtab="paper">Paper</button>
+      </div>
+
+      <div class="effects-strip draw-only" id="effectsStrip">
+          <div class="layer-row">
+          <div class="layer-icon"><svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></div>
+          <div class="layer-name">Contour lines</div>
+          <button class="layer-toggle on" data-toggle="edgeOn"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <div class="layer-row">
+          <div class="layer-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4"/><line x1="9" y1="20" x2="20" y2="9"/><line x1="4" y1="15" x2="15" y2="4"/></svg></div>
+          <div class="layer-name">Shading strokes</div>
+          <button class="layer-toggle on" data-toggle="hatchOn"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <div class="layer-row">
+          <div class="layer-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.3"/><circle cx="12" cy="9" r="1.3"/><circle cx="17" cy="5" r="1.3"/><circle cx="8" cy="15" r="1.3"/><circle cx="15" cy="16" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></div>
+          <div class="layer-name">Paper grain</div>
+          <button class="layer-toggle on" data-toggle="grainOn"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+
+      <div class="pinned draw-only">
+        <div class="field" style="margin:0;">
+          <div class="field-label"><span>Effect strength</span><span class="val" id="v_strength">1.00</span></div>
+          <input type="range" id="strength" title="Blends between the untouched photo and the full drawing" min="0" max="1" step="0.01" value="1">
+        </div>
+      </div>
+
+            <div class="panel-scroll" data-rpanel="draw">
+
+        <div class="group">
+          <div class="group-title">Stroke style</div>
+          <div class="style-grid">
+            <button class="style-btn active" data-style="0">
+              <svg viewBox="0 0 60 34"><g stroke="#181816" stroke-width="1.1" fill="none">
+                <path d="M6 28 L26 6M14 28 L34 6M22 28 L42 6M30 28 L50 6"/>
+                <path d="M6 6 L26 28M14 6 L34 28M22 6 L42 28"/></g></svg>
+              <div class="n">Cross-hatch</div>
+            </button>
+            <button class="style-btn" data-style="1">
+              <svg viewBox="0 0 60 34"><g fill="#181816">
+                <circle cx="10" cy="9" r="1.5"/><circle cx="19" cy="17" r="1.6"/><circle cx="14" cy="25" r="1.3"/>
+                <circle cx="28" cy="8" r="1.7"/><circle cx="33" cy="21" r="1.4"/><circle cx="42" cy="12" r="1.6"/>
+                <circle cx="47" cy="26" r="1.4"/><circle cx="24" cy="29" r="1.2"/><circle cx="38" cy="30" r="1.3"/></g></svg>
+              <div class="n">Stipple</div>
+            </button>
+            <button class="style-btn" data-style="2">
+              <svg viewBox="0 0 60 34"><g stroke="#181816" fill="none" stroke-width="1.1">
+                <path d="M6 8 Q18 4 30 8 T54 8"/><path d="M6 15 Q18 11 30 15 T54 15"/>
+                <path d="M6 22 Q18 18 30 22 T54 22"/><path d="M6 29 Q18 25 30 29 T54 29"/></g></svg>
+              <div class="n">Engraving</div>
+            </button>
+            <button class="style-btn" data-style="3">
+              <svg viewBox="0 0 60 34"><g stroke="#181816" fill="none" stroke-width="1.3">
+                <path d="M12 26 C12 12 22 6 30 6 C40 6 48 14 48 26"/><path d="M20 26 C20 18 25 14 30 14"/></g></svg>
+              <div class="n">Outline</div>
+            </button>
+            <button class="style-btn" data-style="4">
+              <svg viewBox="0 0 60 34"><g stroke="#181816" fill="none">
+                <path d="M6 7 H54" stroke-width="1"/><path d="M6 14 H54" stroke-width="2.4"/>
+                <path d="M6 21 H54" stroke-width="4"/><path d="M6 29 H54" stroke-width="5.6"/></g></svg>
+              <div class="n">Woodcut</div>
+            </button>
+            <button class="style-btn" data-style="5">
+              <svg viewBox="0 0 60 34"><g stroke="#181816" fill="none" stroke-width="0.6">
+                <path d="M5 30 L20 5M9 30 L24 5M13 30 L28 5M17 30 L32 5M21 30 L36 5M25 30 L40 5M29 30 L44 5M33 30 L48 5M37 30 L52 5"/>
+                <path d="M8 5 L23 30M16 5 L31 30M24 5 L39 30M32 5 L47 30"/></g></svg>
+              <div class="n">Needle pen</div>
+            </button>
+            <button class="style-btn" data-style="6">
+              <svg viewBox="0 0 60 34"><g fill="none" stroke-width="2.2" stroke-linecap="round">
+                <path d="M8 27 L22 8" stroke="#c1553f"/><path d="M15 28 L29 9" stroke="#c98a3f"/>
+                <path d="M23 28 L37 9" stroke="#4d7ea8"/><path d="M31 28 L45 9" stroke="#5a8a5e"/>
+                <path d="M39 28 L52 10" stroke="#8a5fa8"/></g></svg>
+              <div class="n">Colored pencil</div>
+            </button>
+            <button class="style-btn" data-style="7">
+              <svg viewBox="0 0 60 34"><g fill="#181816">
+                <circle cx="16" cy="17" r="4.5"/><circle cx="24" cy="14" r="1.4"/><circle cx="26" cy="20" r="1.2"/>
+                <circle cx="10" cy="12" r="1.3"/><circle cx="11" cy="23" r="1.1"/><circle cx="30" cy="12" r="0.9"/>
+                <circle cx="32" cy="22" r="0.8"/><circle cx="20" cy="24" r="1.0"/><circle cx="35" cy="17" r="0.7"/>
+                <circle cx="40" cy="14" r="0.6"/><circle cx="7" cy="18" r="0.7"/></g></svg>
+              <div class="n">Spray</div>
+            </button>
+            <button class="style-btn" data-style="8">
+              <svg viewBox="0 0 60 34"><defs><linearGradient id="grph" x1="0" x2="1"><stop offset="0" stop-color="#181816"/><stop offset="1" stop-color="#bbb"/></linearGradient></defs>
+                <rect x="6" y="6" width="48" height="22" rx="3" fill="url(#grph)"/></svg>
+              <div class="n">Soft graphite</div>
+            </button>
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Nib</div>
+          <div class="opt-chips" id="nibChips">
+            <button class="opt-chip active" data-nib="0">Round</button>
+            <button class="opt-chip" data-nib="1">Chisel</button>
+            <button class="opt-chip" data-nib="2">Marker</button>
+            <button class="opt-chip" data-nib="3">Dry brush</button>
+            <button class="opt-chip" data-nib="4">Crayon</button>
+            <button class="opt-chip" data-nib="5">Fineliner</button>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Nib angle</span><span class="val" id="v_nibAngle">35°</span></div>
+            <input type="range" id="nibAngle" title="Angle the chisel nib is held at" min="0" max="180" step="1" value="35">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Line</div>
+          <div class="field">
+            <div class="field-label"><span>Stroke density</span><span class="val" id="v_density">1.15</span></div>
+            <input type="range" id="density" title="How many stroke lines cross the sheet" min="0.3" max="3" step="0.01" value="1.15">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Stroke angle</span><span class="val" id="v_angle">52°</span></div>
+            <input type="range" id="angle" title="Base direction of the shading strokes" min="0" max="180" step="1" value="52">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Follow contours</span><span class="val" id="v_follow">0.35</span></div>
+            <input type="range" id="follow" title="0 keeps the fixed angle, 1 makes strokes follow the form" min="0" max="1" step="0.01" value="0.35">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Stroke length</span><span class="val" id="v_strokeLen">0.50</span></div>
+            <input type="range" id="strokeLen" title="1 draws continuous lines, lower breaks them into separate marks" min="0.05" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Line weight</span><span class="val" id="v_weight">0.20</span></div>
+            <input type="range" id="weight" title="Base thickness of every stroke" min="0.04" max="0.6" step="0.005" value="0.2">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Weight variation</span><span class="val" id="v_weightVar">0.26</span></div>
+            <input type="range" id="weightVar" title="How much the pen pressure varies" min="0" max="0.4" step="0.005" value="0.26">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Hand jitter</span><span class="val" id="v_jitter">0.70</span></div>
+            <input type="range" id="jitter" title="How unsteady the drawing hand is" min="0" max="1.5" step="0.01" value="0.7">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Ink depth</span><span class="val" id="v_ink">1.00</span></div>
+            <input type="range" id="ink" title="Darkness of the shading strokes" min="0.3" max="1.8" step="0.01" value="1">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Clear flats</span><span class="val" id="v_flatClear">0.60</span></div>
+            <input type="range" id="flatClear" title="Keeps plain, detail-free areas open instead of filling them with a mechanical weave" min="0" max="1" step="0.01" value="0.6">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Shading layers</div>
+          <div class="field">
+            <div class="field-label"><span>Layer count</span><span class="val" id="v_layers">4</span></div>
+            <input type="range" id="layers" title="How many stroke directions build up the shadows" min="1" max="4" step="1" value="4">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Shadow start</span><span class="val" id="v_shadowStart">0.09</span></div>
+            <input type="range" id="shadowStart" title="Tone at which the first shading layer appears" min="0" max="0.6" step="0.01" value="0.09">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Layer spacing</span><span class="val" id="v_layerGap">0.21</span></div>
+            <input type="range" id="layerGap" title="Tonal distance between shading layers" min="0.04" max="0.4" step="0.01" value="0.21">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Contour</div>
+          <div class="opt-chips" id="contourChips">
+            <button class="opt-chip" data-contour="0">Clean</button>
+            <button class="opt-chip active" data-contour="1">Tapered</button>
+            <button class="opt-chip" data-contour="2">Broken</button>
+            <button class="opt-chip" data-contour="3">Double</button>
+            <button class="opt-chip" data-contour="4">Stippled</button>
+            <button class="opt-chip" data-contour="5">Bold marker</button>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Contour weight</span><span class="val" id="v_edge">1.05</span></div>
+            <input type="range" id="edge" title="Strength of the outline drawn around forms" min="0" max="2" step="0.01" value="1.05">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Edge threshold</span><span class="val" id="v_edgeThresh">0.13</span></div>
+            <input type="range" id="edgeThresh" title="How strong an edge must be before it is drawn" min="0" max="0.6" step="0.01" value="0.13">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Line offset</span><span class="val" id="v_contourWob">0.50</span></div>
+            <input type="range" id="contourWob" title="Offset of the second line in the Double contour style" min="0" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Sketch passes</span><span class="val" id="v_passes">2</span></div>
+            <input type="range" id="passes" title="How many times the outline is redrawn, slightly offset" min="1" max="3" step="1" value="2">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Tone</div>
+          <div class="field">
+            <div class="field-label"><span>Contrast</span><span class="val" id="v_contrast">1.00</span></div>
+            <input type="range" id="contrast" title="Spreads or compresses the tones before drawing" min="0.5" max="2.2" step="0.01" value="1">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Exposure</span><span class="val" id="v_exposure">0.00</span></div>
+            <input type="range" id="exposure" title="Brightens or darkens the whole image" min="-0.4" max="0.4" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Detail smoothing</span><span class="val" id="v_smooth">0.60</span></div>
+            <input type="range" id="smooth" title="Blurs fine detail so strokes stay readable" min="0" max="3" step="0.01" value="0.6">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Color bleed</span><span class="val" id="v_bleed">0.00</span></div>
+            <input type="range" id="bleed" title="Lets the ink take colour from the photo" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Tonal wash</span><span class="val" id="v_wash">0.12</span></div>
+            <input type="range" id="wash" title="A soft tonal fill under the strokes" min="0" max="1" step="0.01" value="0.12">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Pigment saturation</span><span class="val" id="v_sat">1.00</span></div>
+            <input type="range" id="sat" title="Saturation of that borrowed colour" min="0" max="2" step="0.01" value="1">
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Watercolour</div>
+          <div class="field">
+            <div class="field-label"><span>Wash</span><span class="val" id="v_watercolor">0.00</span></div>
+            <input type="range" id="watercolor" title="Pigment pools and bleeds unevenly into the paper — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Bloom</span><span class="val" id="v_bloom">0.50</span></div>
+            <input type="range" id="bloom" title="Soft, wobbly wash boundaries" min="0" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Edge darkening</span><span class="val" id="v_wcEdge">0.60</span></div>
+            <input type="range" id="wcEdge" title="Paint dries darker where a wash ends" min="0" max="1" step="0.01" value="0.6">
+          </div>
+        </div>
+
+      <div class="group">
+          <div class="group-title">Finish</div>
+          <div class="field">
+            <div class="field-label"><span>Clarity</span><span class="val" id="v_sharpen">0.00</span></div>
+            <input type="range" id="sharpen" title="Sharpens the source so edges are found more cleanly" min="0" max="2.5" step="0.01" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-scroll" data-rpanel="colour" hidden>
+      <div class="group">
+          <div class="group-title">Colours</div>
+          <div class="theme-grid" id="themeGrid"></div>
+        </div>
+      <div class="group">
+          <div class="group-title">Source colour</div>
+          <div class="opt-chips" id="colorModeChips">
+            <button class="opt-chip active" data-cmode="0">Ink only</button>
+            <button class="opt-chip" data-cmode="1">Tint</button>
+            <button class="opt-chip" data-cmode="2">Flat fill</button>
+            <button class="opt-chip" data-cmode="3">Screenprint</button>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Colour amount</span><span class="val" id="v_colorAmt">1.00</span></div>
+            <input type="range" id="colorAmt" title="How much of the photo's own colour is used" min="0" max="1" step="0.01" value="1">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Posterize</span><span class="val" id="v_poster">Off</span></div>
+            <input type="range" id="poster" title="Flatten the colour into a few bands — left is off" min="0" max="8" step="1" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Colour scatter</span><span class="val" id="v_colorScatter">0.00</span></div>
+            <input type="range" id="colorScatter" title="Drifts the hue with noise so flat areas break up" min="0" max="1" step="0.01" value="0">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Ink</div>
+          <div class="swatch-row">
+            <div class="swatch-circle" id="inkCircle" style="background:#241f1a;"><input type="color" id="inkColor" value="#241f1a"></div>
+            <div class="swatch-label">Ink</div>
+            <div class="swatch-hex" id="inkHex">#241F1A</div>
+          </div>
+          <div class="ink-palette" id="inkPalette"></div>
+          <div class="swatch-row">
+            <div class="swatch-circle" id="ink2Circle" style="background:#c1553f;"><input type="color" id="ink2Color" value="#c1553f"></div>
+            <div class="swatch-label">Second ink</div>
+            <div class="swatch-hex" id="ink2Hex">#C1553F</div>
+          </div>
+          <div class="ink-palette" id="ink2Palette"></div>
+          <div class="field">
+            <div class="field-label"><span>Duotone</span><span class="val" id="v_duo">0.00</span></div>
+            <input type="range" id="duo" title="Blends a second ink into the shadows — 0 uses one ink only" min="0" max="1" step="0.01" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-scroll" data-rpanel="paper" hidden>
+      <div class="group">
+          <div class="group-title">Paper</div>
+          <div class="swatch-row">
+            <div class="swatch-circle" id="paperCircle" style="background:#e7ddc4;"><input type="color" id="paperColor" value="#e7ddc4"></div>
+            <div class="swatch-label">Paper</div>
+            <div class="swatch-hex" id="paperHex">#E7DDC4</div>
+          </div>
+          <div class="paper-chips" id="paperChips">
+            <button class="chip" data-paper="#ffffff"><span class="dot" style="background:#ffffff"></span>Bright white</button>
+            <button class="chip" data-paper="#efe9d8"><span class="dot" style="background:#efe9d8"></span>Ivory</button>
+            <button class="chip" data-paper="#e7ddc4"><span class="dot" style="background:#e7ddc4"></span>Cartridge</button>
+            <button class="chip" data-paper="#e2d6b8"><span class="dot" style="background:#e2d6b8"></span>Kraft</button>
+            <button class="chip" data-paper="#d8e0e6"><span class="dot" style="background:#d8e0e6"></span>Cold grey</button>
+            <button class="chip" data-paper="#f3e6e0"><span class="dot" style="background:#f3e6e0"></span>Blush</button>
+            <button class="chip" data-paper="#1b2a3a"><span class="dot" style="background:#1b2a3a"></span>Midnight</button>
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Paper stock</div>
+          <div class="opt-chips" id="texChips">
+            <button class="opt-chip" data-tex="0">Wove</button>
+            <button class="opt-chip active" data-tex="1">Fibrous</button>
+            <button class="opt-chip" data-tex="2">Cold press</button>
+            <button class="opt-chip" data-tex="3">Canvas</button>
+            <button class="opt-chip" data-tex="4">Recycled</button>
+            <button class="opt-chip" data-tex="5">Crumpled</button>
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Ruling</div>
+          <div class="opt-chips" id="ruleChips">
+            <button class="opt-chip active" data-rule="0">Blank</button>
+            <button class="opt-chip" data-rule="1">Ruled</button>
+            <button class="opt-chip" data-rule="2">Grid</button>
+            <button class="opt-chip" data-rule="3">Dot grid</button>
+            <button class="opt-chip" data-rule="4">Graph</button>
+            <button class="opt-chip" data-rule="5">Isometric</button>
+          </div>
+          <div class="swatch-row">
+            <div class="swatch-circle" id="ruleCircle" style="background:#9fb6cf;"><input type="color" id="ruleColor" value="#9fb6cf"></div>
+            <div class="swatch-label">Rule colour</div>
+            <div class="swatch-hex" id="ruleHex">#9FB6CF</div>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Rule spacing</span><span class="val" id="v_ruleScale">1.00</span></div>
+            <input type="range" id="ruleScale" title="Spacing of the printed ruling" min="0.35" max="3" step="0.01" value="1">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Rule strength</span><span class="val" id="v_ruleAmt">0.55</span></div>
+            <input type="range" id="ruleAmt" title="How strongly the ruling is printed" min="0" max="1" step="0.01" value="0.55">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Sheet edge</div>
+          <div class="opt-chips" id="edgeChips">
+            <button class="opt-chip active" data-edge="0">Full bleed</button>
+            <button class="opt-chip" data-edge="1">Torn</button>
+            <button class="opt-chip" data-edge="2">Burnt</button>
+            <button class="opt-chip" data-edge="3">Cut</button>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Depth</span><span class="val" id="v_edgeAmt">0.50</span></div>
+            <input type="range" id="edgeAmt" title="How far the treatment eats into the sheet" min="0" max="1" step="0.01" value="0.5">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Surface</div>
+          <div class="field">
+            <div class="field-label"><span>Grain amount</span><span class="val" id="v_grain">0.06</span></div>
+            <input type="range" id="grain" title="Strength of the paper surface texture" min="0" max="0.2" step="0.005" value="0.06">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Paper tooth</span><span class="val" id="v_tooth">0.14</span></div>
+            <input type="range" id="tooth" title="Rough paper refuses ink, breaking up the strokes" min="0" max="1" step="0.01" value="0.14">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Edge vignette</span><span class="val" id="v_vig">0.00</span></div>
+            <input type="range" id="vig" title="Darkening towards the corners — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="toggle-row">
+            <div class="lbl">Invert to light on dark</div>
+            <label class="switch"><input type="checkbox" id="invertSwitch"><span class="track"></span></label>
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Print finish</div>
+          <div class="field">
+            <div class="field-label"><span>Letterpress emboss</span><span class="val" id="v_emboss">0.00</span></div>
+            <input type="range" id="emboss" title="Presses the ink into the sheet with bevelled light — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Light angle</span><span class="val" id="v_embossDir">135°</span></div>
+            <input type="range" id="embossDir" title="Direction the emboss is lit from" min="0" max="360" step="1" value="135">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Misregister</span><span class="val" id="v_misreg">0.00</span></div>
+            <input type="range" id="misreg" title="A shifted, off-colour second impression, like riso or a double hit — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Shift X</span><span class="val" id="v_misregX">1.00</span></div>
+            <input type="range" id="misregX" title="Horizontal offset of the second impression" min="-3" max="3" step="0.05" value="1">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Shift Y</span><span class="val" id="v_misregY">0.60</span></div>
+            <input type="range" id="misregY" title="Vertical offset of the second impression" min="-3" max="3" step="0.05" value="0.6">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Photocopy</span><span class="val" id="v_photocopy">0.00</span></div>
+            <input type="range" id="photocopy" title="Worn-toner threshold with a crumbling, blotchy edge — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Speckle</span><span class="val" id="v_specks">0.00</span></div>
+            <input type="range" id="specks" title="Scattered ink flecks and dust across the sheet — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+        </div>
+      <div class="group">
+          <div class="group-title">Preview quality</div>
+          <div class="opt-chips" id="qualityChips">
+            <button class="opt-chip" data-ssaa="1">Draft</button>
+            <button class="opt-chip active" data-ssaa="2">Fine</button>
+            <button class="opt-chip" data-ssaa="3">Ultra</button>
+          </div>
+          <div class="note">Affects how the preview is sampled on screen. Exports are always rendered at full quality.</div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Grain &amp; noise</div>
+          <div class="field">
+            <div class="field-label"><span>Film grain</span><span class="val" id="v_filmGrain">0.00</span></div>
+            <input type="range" id="filmGrain" title="Monochrome photographic grain, heavier in shadows — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Noise wash</span><span class="val" id="v_noiseWash">0.00</span></div>
+            <input type="range" id="noiseWash" title="Soft mottled drift across the whole sheet — 0 is off" min="0" max="1" step="0.01" value="0">
+          </div>
+        </div>
+      </div>
+
+<div class="panel-scroll" data-rpanel="info" hidden>
+        <div class="info-empty" id="infoEmpty">Open an image to see its details here.</div>
+        <div id="infoFilled" style="display:none;">
+          <div class="info-row"><span>File name</span><span id="infoName">—</span></div>
+          <div class="info-row"><span>Source size</span><span id="infoDims">—</span></div>
+          <div class="info-row"><span>Preview buffer</span><span id="infoRender">—</span></div>
+          <div class="info-row"><span>Type</span><span id="infoType">—</span></div>
+          <div class="info-row"><span>Seed</span><span id="infoSeed">—</span></div>
+        </div>
+        <div class="group" style="border-bottom:none; margin-top:6px;">
+          <div class="group-title">Shortcuts</div>
+          <div class="group-body-pad">
+            <div class="kbd-row"><span>Open image</span><kbd>O</kbd></div>
+            <div class="kbd-row"><span>Undo / redo</span><kbd>⌘Z</kbd></div>
+            <div class="kbd-row"><span>Split compare</span><kbd>C</kbd></div>
+            <div class="kbd-row"><span>Peek at original</span><kbd>Space</kbd></div>
+            <div class="kbd-row"><span>Cycle a look</span><kbd>L</kbd></div>
+            <div class="kbd-row"><span>Surprise me</span><kbd>S</kbd></div>
+            <div class="kbd-row"><span>New take</span><kbd>R</kbd></div>
+            <div class="kbd-row"><span>Variations</span><kbd>V</kbd></div>
+            <div class="kbd-row"><span>Export</span><kbd>⌘E</kbd></div>
+            <div class="kbd-row"><span>Fit to screen</span><kbd>0</kbd></div>
+            <div class="kbd-row"><span>Focus mode</span><kbd>F</kbd></div>
+            <div class="kbd-row"><span>Close / dismiss</span><kbd>Esc</kbd></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-foot">
+        <div class="foot-row">
+          <button class="btn btn-ghost" id="saveLook" title="Save the current settings as a file you can reuse or share">
+            <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save settings
+          </button>
+          <button class="btn btn-ghost" id="loadLook" title="Load settings from a saved file">
+            <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Load
+          </button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="resetAll" style="margin-top:7px;">Reset adjustments</button>
+        <input type="file" id="lookInput" accept="application/json,.json" style="display:none;">
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- export sheet -->
+<div class="sheet-backdrop" id="exportSheet">
+  <div class="sheet">
+    <h3>Export sketch</h3>
+    <div class="sub" id="exportSub">Choose a format and resolution.</div>
+    <div class="opt-row">
+      <span>Format</span>
+      <div class="segmini" id="formatSeg">
+        <button data-format="png" class="active">PNG</button>
+        <button data-format="jpg">JPG</button>
+      </div>
+    </div>
+    <div class="opt-row">
+      <span>Scale</span>
+      <div class="segmini" id="scaleSeg">
+        <button data-scale="1" class="active">1×</button>
+        <button data-scale="2">2×</button>
+        <button data-scale="3">3×</button>
+      </div>
+    </div>
+    <div class="opt-row">
+      <span>Transparent paper</span>
+      <label class="switch"><input type="checkbox" id="transparentSwitch"><span class="track"></span></label>
+    </div>
+    <div class="opt-row" id="exportSizeRow"><span>Output size</span><span id="exportSize">—</span></div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="cancelExport">Cancel</button>
+      <button class="btn btn-dark" id="confirmExport">Download PNG</button>
+    </div>
+    <div class="sheet-actions" id="exportAllRow" style="display:none; margin-top:8px;">
+      <button class="btn btn-ghost" id="exportAll" style="flex:1;">Export all queued images</button>
+    </div>
+  </div>
+</div>
+
+<div class="dropveil" id="dropveil">
+  <div class="inner"><b>Drop to open</b><span>PNG, JPG or WebP — several at once is fine</span></div>
+</div>
+<div class="busy" id="busy">Working…</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const canvas = $('view');
+  const gl = canvas.getContext('webgl', {preserveDrawingBuffer:true, premultipliedAlpha:false})
+          || canvas.getContext('experimental-webgl', {preserveDrawingBuffer:true});
+  const dropZone = $('dropZone'), empty = $('empty'), canvasWrap = $('canvasWrap'), fileInput = $('fileInput');
+
+  if(!gl){
+    empty.querySelector('b').textContent = 'WebGL not available';
+    empty.querySelector('p').textContent =
+      'This browser or device cannot run WebGL shaders, so inhandz has nothing to draw with. Try a different browser, or enable hardware acceleration.';
+    const pick = $('pickBtn'); if(pick) pick.style.display='none';
+    return;
+  }
+
+  const VERT = `attribute vec2 aPos; varying vec2 vUv;
+    void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }`;
+
+  gl.getExtension('OES_standard_derivatives');
+  const FRAG = `
+    #extension GL_OES_standard_derivatives : enable
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTex;
+    uniform vec2 uTexel;
+    uniform float uDensity, uAngle, uJitter, uEdge, uInkAmt, uContrast, uExposure, uSmooth, uBleed;
+    uniform float uStrength, uSharpen, uSat;
+    uniform float uFollow, uStrokeLen, uWeight, uWeightVar, uTooth, uWash;
+    uniform float uEdgeThresh, uPasses, uLayers, uShadowStart, uLayerGap;
+    uniform float uNib, uNibAngle, uContourStyle, uContourWob;
+    uniform float uEmboss, uEmbossDir, uMisreg, uMisregX, uMisregY;
+    uniform float uPhotocopy, uSpecks;
+    uniform float uPaperTex, uRuling, uRuleScale, uRuleAmt, uEdgeMode, uEdgeAmt;
+    uniform vec3 uRuleColor;
+    uniform float uSeed, uStyle, uEdgeOn, uHatchOn, uGrainOn, uGrainAmt, uVigAmt, uInvert;
+    uniform float uSplit, uSplitOn, uTransparent;
+    uniform vec3 uInkColor, uInk2Color, uPaperColor;
+    uniform float uDuo, uColorMode, uColorAmt, uPoster, uColorScatter;
+    uniform float uWatercolor, uWcEdge, uFilmGrain, uNoiseWash, uBloom;
+    uniform float uFlatClear;
+    uniform float uAspect;
+
+    // Hoskins hash12 — the old fract(p.x*p.y) form degenerates along p.x==p.y,
+    // which showed up as a hairline seam running diagonally across the sheet.
+    float hash(vec2 p){
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+    float vnoise(vec2 p){
+      vec2 i=floor(p), f=fract(p);
+      float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
+      vec2 u=f*f*(3.-2.*f);
+      return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+    }
+    float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<4;i++){ v+=a*vnoise(p); p*=2.02; a*=.5; } return v; }
+    float luma(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
+    vec3 rgb2hsv(vec3 c){
+      vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+      vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+      vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+      float d = q.x - min(q.w, q.y);
+      float e = 1.0e-10;
+      return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+    // domain-warped noise: gives paint its uneven, pooling body
+    float warpNoise(vec2 p){
+      vec2 q = vec2(fbm(p), fbm(p+vec2(5.2,1.3)));
+      return fbm(p + 4.0*q);
+    }
+    vec3 hsv2rgb(vec3 c){
+      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    vec3 sampleSmooth(vec2 uv){
+      if(uSmooth < 0.02) return texture2D(uTex, clamp(uv,0.,1.)).rgb;
+      vec2 r = uTexel * uSmooth;
+      vec3 s = vec3(0.);
+      s += texture2D(uTex, clamp(uv,0.,1.)).rgb * 4.0;
+      s += texture2D(uTex, clamp(uv+vec2(r.x,0.),0.,1.)).rgb * 2.0;
+      s += texture2D(uTex, clamp(uv-vec2(r.x,0.),0.,1.)).rgb * 2.0;
+      s += texture2D(uTex, clamp(uv+vec2(0.,r.y),0.,1.)).rgb * 2.0;
+      s += texture2D(uTex, clamp(uv-vec2(0.,r.y),0.,1.)).rgb * 2.0;
+      s += texture2D(uTex, clamp(uv+r,0.,1.)).rgb;
+      s += texture2D(uTex, clamp(uv-r,0.,1.)).rgb;
+      s += texture2D(uTex, clamp(uv+vec2(r.x,-r.y),0.,1.)).rgb;
+      s += texture2D(uTex, clamp(uv+vec2(-r.x,r.y),0.,1.)).rgb;
+      return s / 16.0;
+    }
+    float sl(vec2 uv){ return luma(sampleSmooth(uv)); }
+
+    float sobel(vec2 uv){
+      vec2 t=uTexel;
+      float tl=sl(uv+vec2(-t.x,-t.y)), l=sl(uv+vec2(-t.x,0.)), bl=sl(uv+vec2(-t.x,t.y));
+      float tp=sl(uv+vec2(0.,-t.y)), bo=sl(uv+vec2(0.,t.y));
+      float tr=sl(uv+vec2(t.x,-t.y)), r=sl(uv+vec2(t.x,0.)), br=sl(uv+vec2(t.x,t.y));
+      float gx=-tl-2.*l-bl+tr+2.*r+br;
+      float gy=-tl-2.*tp-tr+bl+2.*bo+br;
+      return clamp(sqrt(gx*gx+gy*gy),0.,1.);
+    }
+
+    // gradient of the smoothed image -> lets strokes follow form
+    vec2 gradient(vec2 uv){
+      vec2 t=uTexel*2.0;
+      float l=sl(uv-vec2(t.x,0.)), r=sl(uv+vec2(t.x,0.));
+      float b=sl(uv-vec2(0.,t.y)), tp=sl(uv+vec2(0.,t.y));
+      return vec2(r-l, tp-b);
+    }
+
+    float sobelAt(vec2 uv){
+      vec2 t=uTexel;
+      float tl=sl(uv+vec2(-t.x,-t.y)), l=sl(uv+vec2(-t.x,0.)), bl=sl(uv+vec2(-t.x,t.y));
+      float tp=sl(uv+vec2(0.,-t.y)), bo=sl(uv+vec2(0.,t.y));
+      float tr=sl(uv+vec2(t.x,-t.y)), r=sl(uv+vec2(t.x,0.)), br=sl(uv+vec2(t.x,t.y));
+      float gx=-tl-2.*l-bl+tr+2.*r+br;
+      float gy=-tl-2.*tp-tr+bl+2.*bo+br;
+      return clamp(sqrt(gx*gx+gy*gy),0.,1.);
+    }
+
+    // breaks an infinite line into discrete strokes along its length
+    float strokeMask(float along, float lineId){
+      if(uStrokeLen > 0.98) return 1.0;
+      float len = mix(0.6, 14.0, uStrokeLen);
+      float phase = hash(vec2(lineId, uSeed*11.0));               // strokes don't line up
+      float n = vnoise(vec2(along/len + phase*3.0, lineId*7.3 + uSeed*3.0));
+      // wide transition = the stroke tapers in and out instead of snapping off
+      return smoothstep(0.26, 0.60, n);
+    }
+
+    // ---------- paper surface models ----------
+    float paperTexture(vec2 pn, vec2 uv){
+      if(uPaperTex < 0.5){                       // smooth wove
+        return fbm(pn*26.0)-0.5;
+      } else if(uPaperTex < 1.5){                // fibrous / handmade
+        float fibre = fbm(vec2(pn.x*70.0, pn.y*7.0)) - 0.5;
+        float speck = (hash(floor(pn*180.0))-0.5)*0.7;
+        return fibre*0.85 + speck*0.35;
+      } else if(uPaperTex < 2.5){                // cold press / rough tooth
+        float b = fbm(pn*14.0);
+        b = smoothstep(0.32, 0.72, b) - 0.5;
+        return b*1.25 + (fbm(pn*48.0)-0.5)*0.35;
+      } else if(uPaperTex < 3.5){                // canvas weave
+        float wx = sin(pn.x*150.0 + fbm(pn*4.0)*2.0);
+        float wy = sin(pn.y*150.0 + fbm(pn*4.0+9.0)*2.0);
+        return (wx*wy)*0.28 + (fbm(pn*30.0)-0.5)*0.4;
+      } else if(uPaperTex < 4.5){                // recycled kraft with flecks
+        float base = fbm(pn*22.0)-0.5;
+        vec2 cid = floor(pn*70.0);
+        float fleck = step(0.985, hash(cid)) * (0.5+0.5*hash(cid+3.1));
+        return base*0.7 - fleck*1.6;
+      } else {                                   // crumpled folds
+        float folds = fbm(pn*2.2);
+        float creases = abs(fbm(pn*3.4+5.0)-0.5)*2.0;
+        creases = 1.0 - smoothstep(0.0, 0.18, creases);
+        return (folds-0.5)*1.1 - creases*0.55 + (fbm(pn*40.0)-0.5)*0.25;
+      }
+    }
+
+    // ---------- printed ruling ----------
+    float ruledMask(vec2 pa, out float marginHit){
+      marginHit = 0.0;
+      if(uRuling < 0.5) return 0.0;
+      float sp = 0.045 * uRuleScale;             // spacing as a fraction of height
+      float aaScale = 1.0;
+      float m = 0.0;
+
+      if(uRuling < 1.5){                          // ruled (notebook)
+        float f = abs(fract(pa.y/sp)-0.5)*2.0;
+        float aa = fwidth(pa.y/sp)*2.0+0.02;
+        m = 1.0-smoothstep(0.90-aa, 0.90+aa, f);
+        float mx = abs(pa.x - 0.12);
+        marginHit = 1.0-smoothstep(0.0015, 0.004, mx);
+      } else if(uRuling < 2.5){                   // square grid
+        float fy = abs(fract(pa.y/sp)-0.5)*2.0;
+        float fx = abs(fract(pa.x/sp)-0.5)*2.0;
+        float aa = fwidth(pa.y/sp)*2.0+0.02;
+        m = max(1.0-smoothstep(0.92-aa,0.92+aa,fy), 1.0-smoothstep(0.92-aa,0.92+aa,fx));
+      } else if(uRuling < 3.5){                   // dot grid
+        vec2 g = pa/sp;
+        vec2 f = abs(fract(g)-0.5);
+        float d = length(f);
+        m = 1.0-smoothstep(0.06, 0.12, d);
+      } else if(uRuling < 4.5){                   // graph paper: fine + bold fifths
+        float sp2 = sp*0.4;
+        float fy = abs(fract(pa.y/sp2)-0.5)*2.0;
+        float fx = abs(fract(pa.x/sp2)-0.5)*2.0;
+        float aa = fwidth(pa.y/sp2)*2.0+0.02;
+        float fine = max(1.0-smoothstep(0.94-aa,0.94+aa,fy), 1.0-smoothstep(0.94-aa,0.94+aa,fx));
+        float by = abs(fract(pa.y/(sp2*5.0))-0.5)*2.0;
+        float bx = abs(fract(pa.x/(sp2*5.0))-0.5)*2.0;
+        float aab = fwidth(pa.y/(sp2*5.0))*2.0+0.02;
+        float bold = max(1.0-smoothstep(0.90-aab,0.90+aab,by), 1.0-smoothstep(0.90-aab,0.90+aab,bx));
+        m = max(fine*0.55, bold);
+      } else {                                    // isometric
+        float a1 = (pa.x*0.5 + pa.y*0.866)/sp;
+        float a2 = (pa.x*0.5 - pa.y*0.866)/sp;
+        float a3 = pa.x/sp;
+        float aa = fwidth(a3)*2.0+0.02;
+        float l1 = 1.0-smoothstep(0.92-aa,0.92+aa, abs(fract(a1)-0.5)*2.0);
+        float l2 = 1.0-smoothstep(0.92-aa,0.92+aa, abs(fract(a2)-0.5)*2.0);
+        float l3 = 1.0-smoothstep(0.92-aa,0.92+aa, abs(fract(a3)-0.5)*2.0);
+        m = max(max(l1,l2), l3);
+      }
+      return clamp(m,0.,1.);
+    }
+
+    // ---------- sheet edges & relief ----------
+    // Edge noise rides on the drawing seed, so "New take" reshuffles the sheet too.
+    float edgeNoise(vec2 q, float freq, float o){
+      return fbm(q*freq + vec2(uSeed*3.1+o, uSeed*1.7+o*2.0));
+    }
+
+    // A torn or burnt silhouette is never one frequency: a coarse wander, a finer
+    // nibble on top, and at the very lip individual fibres.
+    float tornCut(float t, float o, float amt){
+      float coarse = edgeNoise(vec2(t,0.0), 3.2, o)      - 0.5;
+      float mid    = edgeNoise(vec2(t,0.0), 13.0, o+5.0) - 0.5;
+      float fibre  = edgeNoise(vec2(t,0.0), 64.0, o+9.0) - 0.5;
+      return 0.010 + amt*0.070 + (coarse*0.60 + mid*0.28 + fibre*0.14)*amt*0.17;
+    }
+
+    // Fire eats paper in bites of several sizes, occasionally a deeper one.
+    // Kept shallow: a singed sheet, not a sheet half consumed.
+    float burntCut(float t, float o, float amt){
+      float wander = edgeNoise(vec2(t,0.0), 1.6, o)       - 0.5;
+      float bite   = edgeNoise(vec2(t,0.0), 5.0, o+7.0)   - 0.5;
+      float nibble = edgeNoise(vec2(t,0.0), 16.0, o+13.0) - 0.5;
+      float deep   = smoothstep(0.80, 0.97, edgeNoise(vec2(t,0.0), 2.4, o+31.0));
+      return 0.005 + amt*0.024
+           + (wander*0.40 + bite*0.45 + nibble*0.18)*amt*0.105
+           + deep*amt*0.030;
+    }
+
+    // x = alpha, y = scorch (0 none .. 1 charred), z = exposed fibre lightening,
+    // w is returned separately as relief shading
+    vec4 sheetTreatment(vec2 uv, vec2 pn){
+      if(uEdgeMode < 0.5) return vec4(1.0, 0.0, 0.0, 0.0);
+      float amt = uEdgeAmt;
+      float dL=uv.x, dR=1.0-uv.x, dT=uv.y, dB=1.0-uv.y;
+      vec2 along = vec2(uv.y, uv.x);
+
+      if(uEdgeMode < 1.5){                                  // torn
+        float m = min(min(dL - tornCut(uv.y, 0.0,  amt), dR - tornCut(uv.y, 21.0, amt)),
+                      min(dT - tornCut(uv.x, 41.0, amt), dB - tornCut(uv.x, 61.0, amt)));
+        float a = smoothstep(0.0, 0.0035, m);
+        float fibres = (1.0 - smoothstep(0.0, 0.028 + amt*0.020, m))
+                     * (0.55 + 0.45*edgeNoise(along, 90.0, 3.0));
+        return vec4(a, 0.0, fibres*0.45, 0.0);
+
+      } else if(uEdgeMode < 2.5){                           // burnt
+        float m = min(min(dL - burntCut(uv.y, 0.0,  amt), dR - burntCut(uv.y, 23.0, amt)),
+                      min(dT - burntCut(uv.x, 43.0, amt), dB - burntCut(uv.x, 63.0, amt)));
+        float a = smoothstep(0.0, 0.0025, m);
+
+        // the odd pinhole where an ember ate through, sparse enough to read as real
+        float holeZone = 1.0 - smoothstep(0.0, 0.014 + amt*0.012, m);
+        float holes = edgeNoise(uv, 60.0, 77.0);
+        if(holeZone > 0.55 && holes > 0.90) a = 0.0;
+
+        // heat travels well past the cut, unevenly, and fades out softly
+        float band = 0.022 + amt*0.055;
+        float spread = 0.70 + 0.60*edgeNoise(along, 4.0, 17.0);
+        float t = 1.0 - smoothstep(0.0, band*spread, m);
+        t = pow(clamp(t, 0.0, 1.0), 1.5);                  // gentle falloff inward
+        t *= 0.82 + 0.36*edgeNoise(along, 17.0, 11.0);
+        return vec4(a, clamp(t, 0.0, 1.0), 0.0, 0.0);
+
+      } else {                                                // trimmed / cut
+        float w = (edgeNoise(along, 55.0, 0.0) - 0.5) * amt * 0.006;
+        float c = 0.004 + amt*0.010;
+        float m = min(min(dL, dR), min(dT, dB)) - c + w;
+        return vec4(smoothstep(0.0, 0.0018, m),
+                    (1.0 - smoothstep(0.0, 0.022, m)) * 0.14, 0.0, 0.0);
+      }
+    }
+
+    // When a line period shrinks below ~2 pixels it can no longer be resolved and
+    // starts beating against the pixel grid. Past that point the line is faded to
+    // its own average coverage, which is what an infinitely-sampled render gives.
+    float resolveFade(float w){ return smoothstep(0.26, 0.70, w); }
+
+    // nib shapes the cross-section of every stroke
+    float nibProfile(float f, float th, float aa, float along, vec2 pn, float ang){
+      if(uNib < 0.5){                       // round tip
+        return 1.-smoothstep(th-aa, th+aa, f);
+      } else if(uNib < 1.5){                // chisel / calligraphy
+        float w = th * (0.18 + 1.15*abs(sin(ang - radians(uNibAngle))));
+        return 1.-smoothstep(w-aa, w+aa, f);
+      } else if(uNib < 2.5){                // marker: hard flat edge
+        float w = th*1.30;
+        return 1.-smoothstep(w-aa*0.35, w+aa*0.35, f);
+      } else if(uNib < 3.5){               // dry brush: split bristles
+        float n = vnoise(vec2(along*2.6, f*7.0 + uSeed*4.0));
+        float w = th*(0.55 + 0.95*n);
+        return 1.-smoothstep(w-aa, w+aa, f);
+      } else if(uNib < 4.5){               // crayon / wax
+        float n = fbm(pn*20.0 + uSeed);
+        float l = 1.-smoothstep(th*1.25-aa, th*1.25+aa, f);
+        return l * smoothstep(0.30, 0.62, n);
+      } else {                              // fineliner
+        float w = min(th, 0.11);
+        return 1.-smoothstep(w-aa*0.6, w+aa*0.6, f);
+      }
+    }
+
+    // ph = hatch space (one unit = one line period), pn = stable noise space
+    float hatchLine(vec2 ph, vec2 pn, float ang, float scale, float wobbleAmt){
+      vec2 p = ph * scale;
+      float c=cos(ang), sn=sin(ang);
+      float rough = p.x*c + p.y*sn;
+      float alongRaw = -p.x*sn + p.y*c;
+      float lineId = floor(rough);
+
+      // a hand drifts slowly along the line and starts each new line elsewhere
+      float drift = (vnoise(vec2(alongRaw*0.10, lineId*1.7 + uSeed*5.0)) - 0.5) * 1.35
+                  + (vnoise(vec2(alongRaw*0.42, lineId*3.1 + uSeed*9.0)) - 0.5) * 0.45;
+      float wob = drift * wobbleAmt;
+
+      float coord = rough + wob;
+      float along = alongRaw;
+      float f = abs(fract(coord)-.5)*2.;
+
+      // pressure swells and thins along the stroke, not in blobs across the page
+      float pressure = vnoise(vec2(along*0.22, lineId*2.3 + uSeed*3.0));
+      float lineBias = (hash(vec2(lineId, uSeed*7.0)) - 0.5) * 0.55;   // some lines simply darker
+      float th = clamp(uWeight * (1.0 + lineBias*uWeightVar*3.0)
+                       + (pressure-0.5)*uWeightVar*2.0, 0.02, 0.95);
+      float w = fwidth(coord);
+      float aa = w*2.2 + 0.02;
+      float line = nibProfile(f, th, aa, along, pn, ang);
+      line = mix(line, clamp(th,0.,1.), resolveFade(w));
+      return line * strokeMask(along, floor(coord));
+    }
+
+    float engraveLine(vec2 ph, vec2 pn, float ang, float scale, float tone, float wobbleAmt){
+      vec2 p = ph * scale;
+      float c=cos(ang), sn=sin(ang);
+      float across = -p.x*sn + p.y*c;
+      float lineSeed = hash(vec2(floor(p.x*c + p.y*sn), uSeed));
+      float wob = sin(across*0.35 + fbm(pn*1.6+uSeed)*5.0 + lineSeed*6.2831) * 0.30 * wobbleAmt;
+      float coord = p.x*c + p.y*sn + wob;
+      float f = abs(fract(coord)-.5)*2.;
+      float th = clamp(tone,0.,1.) * (0.6 + uWeight);
+      float w = fwidth(coord);
+      float aa = w*2.2 + 0.02;
+      float line = nibProfile(f, th, aa, across, pn, ang);
+      line = mix(line, clamp(th,0.,1.), resolveFade(w));
+      return line * strokeMask(across, floor(coord));
+    }
+
+    float stipple(vec2 ph, float tone, float scale){
+      vec2 cell = ph * scale;
+      vec2 id = floor(cell);
+      vec2 f = fract(cell);
+      vec2 off = vec2(hash(id+uSeed), hash(id+uSeed+31.7)) * 0.6 + 0.2;
+      float d = distance(f, off);
+      float jit = 1.0 + (hash(id+uSeed+7.3)-0.5)*uWeightVar*2.4;
+      float rad = sqrt(clamp(tone,0.,1.)) * (0.25 + uWeight) * jit;
+      float aa = fwidth(d)*1.6 + 0.01;
+      return 1.-smoothstep(rad-aa, rad+aa, d);
+    }
+
+    // spray / airbrush: probabilistic dots, dense at the core of a mark,
+    // scattering out into a soft cloud at the edges
+    float sprayShade(vec2 ph, vec2 pn, float tone){
+      float d = 0.0;
+      // three grid scales of speckle give the fine-to-coarse falloff
+      for(int i=0;i<3;i++){
+        float sc = 2.2 + float(i)*3.3;
+        vec2 cell = ph * (0.9*sc);
+        vec2 id = floor(cell);
+        vec2 f = fract(cell);
+        vec2 o = vec2(hash(id+uSeed+float(i)*17.0), hash(id+uSeed+float(i)*31.0));
+        float dist = distance(f, o);
+        // droplet lands only if the local tone beats a random threshold
+        float thr = hash(id+uSeed+float(i)*7.0);
+        float lands = step(thr, pow(clamp(tone,0.,1.), 0.8));
+        float dot = (1.0 - smoothstep(0.06, 0.16, dist)) * lands;
+        d = max(d, dot * (0.5 + 0.5/float(i+1)));
+      }
+      return d;
+    }
+
+    // soft graphite: continuous tone, dark where the image is dark, with a
+    // faint directional grain rather than discrete lines
+    float graphiteShade(vec2 ph, vec2 pn, float ang, float tone){
+      float base = smoothstep(0.05, 0.95, tone);
+      float grain = 0.5 + 0.5*fbm(vec2((ph.x*cos(ang)+ph.y*sin(ang))*0.9, (ph.x*-sin(ang)+ph.y*cos(ang))*3.2) + uSeed);
+      float tooth = 0.75 + 0.25*fbm(pn*30.0);
+      return clamp(base * grain * tooth * 1.15, 0.0, 1.0);
+    }
+
+    void main(){
+      vec2 uv=vUv;
+      vec2 pa = vec2(uv.x*uAspect, uv.y);
+      vec2 pn = pa * 9.0 + vec2(37.4, 61.9);
+      vec2 ph = pa * (70.0 * uDensity);
+      vec3 originalCol=texture2D(uTex, uv).rgb;
+
+      vec2 juv=uv+(vec2(fbm(pn*1.6+uSeed), fbm(pn*1.6+uSeed+50.))-.5)*uJitter*.012;
+      vec3 blurred = sampleSmooth(juv);
+      vec3 sharpSrc = texture2D(uTex, clamp(juv,0.,1.)).rgb;
+      vec3 src = blurred + (sharpSrc - blurred) * uSharpen;
+      float lum=luma(src)+uExposure;
+      lum=clamp((lum-.5)*uContrast+.5,0.,1.);
+      float tone=1.-lum;
+
+      // ---- contour pass: repeat strokes for a sketchier, searched line
+      float edgeRaw = 0.0;
+      for(int i=0;i<3;i++){
+        if(float(i) < uPasses){
+          vec2 o = (i==0) ? vec2(0.0)
+                 : (vec2(fbm(pn*3.1+float(i)*11.0+uSeed), fbm(pn*3.1+float(i)*23.0+uSeed))-0.5)
+                   * uTexel * (2.0 + uJitter*9.0) * 3.0;
+          edgeRaw = max(edgeRaw, sobelAt(juv+o));
+        }
+      }
+      float thresh = uEdgeThresh;
+      if(uContourStyle > 4.5) thresh *= 0.55;                       // bold: catch weaker edges
+      float edge = smoothstep(thresh, thresh+0.16, edgeRaw);
+
+      if(uContourStyle > 0.5 && uContourStyle < 1.5){               // tapered by local darkness
+        float t = 1.0 - sl(juv);
+        edge *= 0.30 + 1.05*t;
+      } else if(uContourStyle < 2.5 && uContourStyle > 1.5){        // broken / searching line
+        edge *= smoothstep(0.26, 0.58, fbm(pn*12.0 + uSeed*2.0));
+      } else if(uContourStyle < 3.5 && uContourStyle > 2.5){        // double / ghost line
+        vec2 o = vec2(cos(radians(uNibAngle)), sin(radians(uNibAngle))) * uTexel * (2.5 + uContourWob*9.0);
+        float e2 = smoothstep(thresh, thresh+0.16, sobelAt(juv+o));
+        edge = max(edge, e2*0.72);
+      } else if(uContourStyle < 4.5 && uContourStyle > 3.5){        // stippled contour
+        edge *= stipple(ph, 1.0, 1.9);
+      } else if(uContourStyle > 4.5){                               // bold marker: dilate
+        vec2 t2 = uTexel*2.2;
+        float d = edgeRaw;
+        d = max(d, sobelAt(juv+vec2(t2.x,0.)));
+        d = max(d, sobelAt(juv-vec2(t2.x,0.)));
+        d = max(d, sobelAt(juv+vec2(0.,t2.y)));
+        d = max(d, sobelAt(juv-vec2(0.,t2.y)));
+        edge = smoothstep(thresh, thresh+0.12, d);
+      }
+      edge = clamp(edge,0.,1.) * uEdge * uEdgeOn;
+
+      // ---- stroke direction: fixed angle blended toward the form's contour
+      float baseAng = radians(uAngle);
+      vec2 g = gradient(juv);
+      float gm = clamp(length(g)*14.0, 0., 1.);
+      vec2 flowDir = (gm > 0.001) ? normalize(vec2(-g.y, g.x)) : vec2(cos(baseAng), sin(baseAng));
+      vec2 fixedDir = vec2(cos(baseAng), sin(baseAng));
+      if(dot(flowDir, fixedDir) < 0.0) flowDir = -flowDir;
+      vec2 dir = normalize(mix(fixedDir, flowDir, uFollow*gm) + vec2(1e-5));
+      float ang = atan(dir.y, dir.x);
+
+      float wob = uJitter*0.55;
+      // break up the tone thresholds so layers don't switch on along a crisp edge
+      float tJit = (fbm(pn*5.5 + uSeed*4.0) - 0.5) * 0.10 * (0.35 + uJitter);
+      float t0 = uShadowStart + tJit;
+      float gap = uLayerGap;
+
+      float shade=0.;
+      if(uStyle < 0.5){                       // cross-hatch
+        float h1=hatchLine(ph,pn,ang,        1.0, wob)*smoothstep(t0, t0+.20, tone);
+        float h2=hatchLine(ph,pn,ang+1.5708, 1.0, wob)*smoothstep(t0+gap, t0+gap+.08, tone)*step(1.5, uLayers);
+        float h3=hatchLine(ph,pn,ang+0.62,   1.3, wob)*smoothstep(t0+gap*2., t0+gap*2.+.08, tone)*step(2.5, uLayers);
+        float h4=hatchLine(ph,pn,ang+2.40,   0.8, wob)*smoothstep(t0+gap*3., t0+gap*3.+.08, tone)*step(3.5, uLayers);
+        shade=clamp(h1+h2+h3+h4,0.,1.);
+      } else if(uStyle < 1.5){                // stipple / halftone
+        shade = stipple(ph, tone, 0.85);
+      } else if(uStyle < 2.5){                // engraving
+        shade = engraveLine(ph, pn, ang, 1.0, tone, wob);
+      } else if(uStyle < 3.5){                // outline only
+        shade = 0.0;
+      } else if(uStyle < 4.5){                // woodcut
+        float t = pow(clamp(tone,0.,1.), 0.65);
+        float w1 = engraveLine(ph, pn, ang, 0.55, t, wob*1.4);
+        float w2 = engraveLine(ph, pn, ang+1.5708, 0.55, t*0.85, wob*1.4)*smoothstep(t0+gap*2., t0+gap*2.+.12, tone);
+        shade = clamp(max(w1, w2) + step(0.93, tone), 0., 1.);
+      } else if(uStyle < 5.5){                // needle pen
+        float n1=hatchLine(ph,pn,ang+0.30,  2.6, wob*1.8)*smoothstep(t0, t0+.10, tone);
+        float n2=hatchLine(ph,pn,ang+1.20,  2.9, wob*1.8)*smoothstep(t0+gap, t0+gap+.12, tone)*step(1.5, uLayers);
+        float n3=hatchLine(ph,pn,ang+2.10,  2.4, wob*1.8)*smoothstep(t0+gap*2., t0+gap*2.+.12, tone)*step(2.5, uLayers);
+        shade=clamp(n1+n2+n3,0.,1.)*0.92;
+      } else if(uStyle < 6.5){                // colored pencil
+        float c1=hatchLine(ph,pn,ang,       0.75, wob*1.5)*smoothstep(t0, t0+.14, tone);
+        float c2=hatchLine(ph,pn,ang+0.45,  0.95, wob*1.5)*smoothstep(t0+gap, t0+gap+.18, tone)*step(1.5, uLayers);
+        shade=clamp(c1*0.8+c2*0.7,0.,1.);
+      } else if(uStyle < 7.5){                // spray paint
+        shade = sprayShade(ph, pn, tone);
+      } else {                                // soft graphite
+        shade = graphiteShade(ph, pn, ang, tone);
+      }
+      shade *= uHatchOn;
+
+      // Suppress hatching in flat, featureless regions so plain backgrounds don't
+      // fill with a mechanical diagonal weave. Detail (gm) and deep shadow keep it.
+      if(uFlatClear > 0.001){
+        float detail = clamp(gm*1.4 + smoothstep(0.55, 0.9, tone), 0.0, 1.0);
+        float keep = mix(1.0, detail, uFlatClear);
+        shade *= keep;
+      }
+
+      float coverage=clamp(max(edge, shade*uInkAmt),0.,1.);
+
+      // paper tooth: rough fibres refuse ink
+      if(uTooth > 0.001){
+        float tooth = smoothstep(0.30, 0.62, fbm(pn*34.0 + 9.0));
+        coverage *= mix(1.0, tooth, uTooth);
+      }
+
+      float grain = uGrainOn>.5 ? paperTexture(pn, uv)*uGrainAmt : 0.;
+      vec3 paper = uPaperColor + grain;
+
+      // printed ruling sits on the sheet, under the drawing
+      float marginHit = 0.0;
+      float rule = ruledMask(pa, marginHit);
+      if(rule > 0.001){
+        paper = mix(paper, uRuleColor, rule*uRuleAmt);
+      }
+      if(marginHit > 0.001 && uRuling < 1.5){
+        paper = mix(paper, vec3(0.85,0.42,0.45), marginHit*uRuleAmt*0.9);
+      }
+
+      float bleed = uStyle > 5.5 ? max(uBleed, 0.85) : uBleed;
+      vec3 pigment = src;
+      float pl = luma(pigment);
+      pigment = clamp(mix(vec3(pl), pigment, uSat) * 0.75, 0., 1.);
+      // duotone: deep shadows lean to the second ink, midtones to the first
+      vec3 baseInk = uInkColor;
+      if(uDuo > 0.001){
+        float mixT = smoothstep(0.35, 0.85, tone);
+        baseInk = mix(uInkColor, uInk2Color, mixT * uDuo);
+      }
+      vec3 inkCol = mix(baseInk, pigment*0.6 + baseInk*0.4, bleed);
+
+      // soft wash under the strokes
+      float washAmt = uWash * smoothstep(0.12, 0.85, tone);
+      vec3 washed = mix(paper, mix(paper, inkCol, 0.55), washAmt);
+
+      vec3 col = mix(washed, inkCol, coverage);
+
+      // ---- watercolour: real wash bodies instead of line coverage ----
+      if(uWatercolor > 0.001){
+        // domain-warped tone so the wash pools and drifts across the paper
+        vec2 wq = pn*1.4 + uSeed;
+        float warp = warpNoise(wq);
+        float wt = clamp(tone*1.15 + (warp-0.5)*0.55*uBloom, 0.0, 1.0);
+
+        // quantise into a few translucent washes, each a soft-edged layer
+        float layers = 4.0;
+        float stepped = floor(wt*layers)/layers;
+        float frac = fract(wt*layers);
+        // wobbly boundary between layers = bleeding wash edges
+        float edgeWob = (warpNoise(wq*2.3+11.0)-0.5)*0.6*uBloom;
+        float wash = stepped + smoothstep(0.35+edgeWob, 0.65+edgeWob, frac)/layers;
+
+        // pigment colour: from the photo if a colour mode is feeding it, else the ink
+        vec3 wpig = (uColorMode>0.5) ? src : inkCol;
+        // paper shows through the lightest washes
+        vec3 wcol = mix(uPaperColor, wpig, smoothstep(0.06, 0.9, wash));
+
+        // granulation: pigment settles into the paper tooth
+        float gran = (fbm(pn*26.0)-0.5) * 0.18 * uWatercolor;
+        wcol = clamp(wcol - gran*smoothstep(0.2,0.9,wash), 0.0, 1.0);
+
+        // edge darkening: paint dries darker where a wash ends (backruns)
+        float rim = abs(fract(wt*layers)-0.5)*2.0;
+        float rimBand = (1.0-smoothstep(0.0,0.35,rim)) * smoothstep(0.12,0.5,wash);
+        wcol = mix(wcol, wcol*0.7, rimBand * uWcEdge);
+
+        // keep the drawn line/contour riding on top of the wash
+        float lineKeep = max(edge, shade*uInkAmt*0.5);
+        vec3 wet = mix(wcol, inkCol, lineKeep*0.8);
+
+        col = mix(col, wet, uWatercolor);
+      }
+
+      // ---- colour modes: bring the photo's own colour back into the drawing ----
+      if(uColorMode > 0.5){
+        vec3 srcCol = src;                       // the (smoothed) original colour here
+        vec3 hsv = rgb2hsv(srcCol);
+
+        // scatter: jitter the hue by a noise field so flats break into drifting colour
+        if(uColorScatter > 0.001){
+          float hshift = (fbm(pn*7.0 + uSeed*3.0) - 0.5) * uColorScatter * 0.6;
+          float sshift = (fbm(pn*11.0 + 20.0) - 0.5) * uColorScatter * 0.5;
+          hsv.x = fract(hsv.x + hshift);
+          hsv.y = clamp(hsv.y + sshift, 0.0, 1.0);
+        }
+        // posterize the value (and hue) into bands
+        if(uPoster > 1.5){
+          float lv = max(2.0, floor(uPoster));
+          hsv.z = floor(hsv.z * lv + 0.5) / lv;
+          hsv.y = floor(hsv.y * lv + 0.5) / lv;
+        }
+        vec3 recol = hsv2rgb(hsv);
+
+        vec3 colorField;
+        if(uColorMode < 1.5){
+          // Tint: colour the ink with the local hue, paper stays
+          colorField = mix(washed, recol, coverage);
+        } else if(uColorMode < 2.5){
+          // Flat fill: posterized photo colour laid down as blocks, drawing on top
+          colorField = mix(recol, inkCol, coverage*0.85);
+        } else {
+          // Screenprint: paper shows through, colour where the photo is saturated/dark
+          float lay = clamp(hsv.y*0.7 + (1.0-luma(srcCol))*0.6, 0.0, 1.0);
+          vec3 flatCol = mix(uPaperColor, recol, smoothstep(0.15, 0.5, lay));
+          colorField = mix(flatCol, inkCol, coverage*0.7);
+        }
+        col = mix(col, colorField, uColorAmt);
+      }
+
+      // misregistered second impression: sample coverage at an offset and lay
+      // down a shifted, differently-tinted ghost of the ink
+      if(uMisreg > 0.001){
+        vec2 off = vec2(uMisregX, uMisregY) * 0.02;
+        float tone2 = 1.0 - clamp((luma(sampleSmooth(juv+off))-0.5)*uContrast+0.5, 0.0, 1.0);
+        float cov2 = smoothstep(0.15, 0.55, tone2);
+        // a complementary-ish tint so the overlap reads as a third colour
+        vec3 ghost = clamp(vec3(inkCol.b, inkCol.r, inkCol.g)*0.9 + 0.05, 0.0, 1.0);
+        col = mix(col, ghost, cov2 * uMisreg * (1.0 - coverage*0.6));
+      }
+
+      // photocopy degrade: high-contrast toner threshold with a crumbling,
+      // noisy edge and blotchy fill, like a worn-out copier
+      if(uPhotocopy > 0.001){
+        float noise = fbm(pn*40.0) - 0.5;
+        float edgeCrumble = (fbm(pn*18.0 + 3.0) - 0.5) * 0.35;
+        float cov = coverage + edgeCrumble + noise*0.18;
+        float toner = smoothstep(0.42, 0.52, cov);
+        // patchy dropouts where toner didn't take
+        toner *= step(0.12, fbm(pn*9.0 + 21.0));
+        vec3 copied = mix(paper, inkCol, toner);
+        col = mix(col, copied, uPhotocopy);
+      }
+
+      // speckle: scattered ink flecks + light dust across the sheet (riso/grunge)
+      if(uSpecks > 0.001){
+        vec2 sc = pn * 55.0;
+        float fleck = step(0.972 - uSpecks*0.03, hash(floor(sc)));
+        col = mix(col, inkCol, fleck * uSpecks);
+        float dust = step(0.988, hash(floor(sc*1.7 + 13.0)));
+        col = mix(col, paper*0.9, dust * uSpecks * 0.5);
+      }
+
+      if(uInvert > .5){ col = vec3(1.) - col; }
+
+      if(uVigAmt > 0.001){
+        float d = distance(uv, vec2(.5));
+        float v = smoothstep(.72, .35, d);
+        col = mix(col*(1.0-uVigAmt*0.85), col, v);
+      }
+
+      if(uEmboss > 0.001){
+        // height = how much ink sits here; its slope gives the bevel lighting
+        vec2 e = uTexel * 1.5;
+        float hL = luma(vec3(1.0)-mix(washed, inkCol, smoothstep(0.15,0.55,1.0-luma(sampleSmooth(juv-vec2(e.x,0.))))));
+        // simpler: build a height from coverage directly
+        float hR = coverage;
+        float dxp = 0.0, dyp = 0.0;
+        // sample coverage neighbours cheaply from tone
+        float cU = smoothstep(0.15,0.55, 1.0 - clamp((luma(sampleSmooth(juv-vec2(0.,e.y)))-0.5)*uContrast+0.5,0.,1.));
+        float cD = smoothstep(0.15,0.55, 1.0 - clamp((luma(sampleSmooth(juv+vec2(0.,e.y)))-0.5)*uContrast+0.5,0.,1.));
+        float cL = smoothstep(0.15,0.55, 1.0 - clamp((luma(sampleSmooth(juv-vec2(e.x,0.)))-0.5)*uContrast+0.5,0.,1.));
+        float cR = smoothstep(0.15,0.55, 1.0 - clamp((luma(sampleSmooth(juv+vec2(e.x,0.)))-0.5)*uContrast+0.5,0.,1.));
+        vec2 slope = vec2(cR-cL, cD-cU);
+        vec2 lightDir = vec2(cos(radians(uEmbossDir)), sin(radians(uEmbossDir)));
+        float lit = dot(normalize(slope + vec2(1e-5)), lightDir) * length(slope);
+        // blind emboss: tint the sheet itself, ink barely visible
+        vec3 tone_col = uPaperColor;
+        col = mix(col, tone_col, uEmboss*0.7);                 // flatten the ink
+        col = clamp(col + lit * uEmboss * 0.9, 0.0, 1.0);      // add the bevel
+      }
+
+      col = mix(originalCol, col, uStrength);
+
+      vec4 se = sheetTreatment(uv, pn);
+      float sheetAlpha = se.x;
+
+      if(uEdgeMode > 1.5 && uEdgeMode < 2.5 && se.y > 0.001){
+        // heat browns paper long before it chars it
+        vec3 warm  = vec3(0.80,0.66,0.42);
+        vec3 brown = vec3(0.46,0.29,0.14);
+        vec3 chard = vec3(0.13,0.10,0.08);
+        col = mix(col, warm,  smoothstep(0.04, 0.45, se.y)*0.45);
+        col = mix(col, brown, smoothstep(0.42, 0.86, se.y)*0.70);
+        col = mix(col, chard, smoothstep(0.82, 1.00, se.y)*0.85);
+      } else if(se.y > 0.001){
+        col = mix(col, col*0.72, se.y);
+      }
+      if(se.z > 0.001){
+        col = mix(col, clamp(col*1.16 + 0.06, 0.0, 1.0), se.z);
+      }
+
+      float alpha = sheetAlpha;
+      if(uTransparent > .5){
+        alpha = clamp(max(coverage, washAmt*0.55),0.,1.) * uStrength * sheetAlpha;
+        col = inkCol; if(uInvert>.5) col = vec3(1.)-col;
+      }
+
+      if(uSplitOn > .5 && vUv.x < uSplit){ col = originalCol; alpha = 1.0; }
+
+      gl_FragColor=vec4(col, alpha);
+    }`;
+
+  function compile(src,type){
+    const sh=gl.createShader(type); gl.shaderSource(sh,src); gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
+    return sh;
+  }
+  const prog=gl.createProgram();
+  gl.attachShader(prog, compile(VERT, gl.VERTEX_SHADER));
+  gl.attachShader(prog, compile(FRAG, gl.FRAGMENT_SHADER));
+  gl.linkProgram(prog); gl.useProgram(prog);
+
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const aPos=gl.getAttribLocation(prog,'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+
+  const tex=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  const U={};
+  ['uTex','uTexel','uDensity','uAngle','uJitter','uEdge','uInkAmt','uContrast','uExposure','uSmooth','uBleed','uSeed','uStyle',
+   'uStrength','uSharpen','uSat','uFollow','uStrokeLen','uWeight','uWeightVar','uTooth','uWash',
+   'uEdgeThresh','uPasses','uLayers','uShadowStart','uLayerGap',
+   'uNib','uNibAngle','uContourStyle','uContourWob',
+   'uEmboss','uEmbossDir','uMisreg','uMisregX','uMisregY','uPhotocopy','uSpecks',
+   'uPaperTex','uRuling','uRuleScale','uRuleAmt','uEdgeMode','uEdgeAmt','uRuleColor',
+   'uEdgeOn','uHatchOn','uGrainOn','uGrainAmt','uVigAmt','uInvert','uSplit','uSplitOn','uTransparent',
+   'uInkColor','uInk2Color','uPaperColor','uDuo','uColorMode','uColorAmt','uPoster','uColorScatter',
+   'uWatercolor','uWcEdge','uFilmGrain','uNoiseWash','uBloom','uFlatClear','uAspect'].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+  const defaults = {
+    style:0, density:1.15, angle:52, jitter:0.7, edge:1.05, ink:1,
+    contrast:1, exposure:0, smooth:0.6, bleed:0, strength:1, sharpen:0, sat:1,
+    follow:0.35, strokeLen:0.5, weight:0.2, weightVar:0.26, tooth:0.14, wash:0.12,
+    edgeThresh:0.13, passes:2, layers:4, shadowStart:0.09, layerGap:0.21,
+    nib:0, nibAngle:35, contourStyle:0, contourWob:0.5,
+    paperTex:1, ruling:0, ruleScale:1, ruleAmt:0.55, ruleColorHex:'#9fb6cf',
+    edgeMode:0, edgeAmt:0.5,
+    emboss:0, embossDir:135, misreg:0, misregX:1, misregY:0.6,
+    photocopy:0, specks:0,
+    inkColorHex:'#241f1a', ink2ColorHex:'#c1553f', paperColorHex:'#e7ddc4', duo:0,
+    colorMode:0, colorAmt:1, poster:0, colorScatter:0,
+    watercolor:0, wcEdge:0.6, bloom:0.5, filmGrain:0, noiseWash:0, flatClear:0.6,
+    edgeOn:true, hatchOn:true, grainOn:true, grainAmt:0.06,
+    vigAmt:0, invert:false
+  };
+  let params = JSON.parse(JSON.stringify(defaults));
+  let seed = Math.random()*100, hasImage=false;
+  let splitOn=false, splitPos=0.5, transparent=false, exportScale=1, exportFormat='png';
+  let ssaa=2;   // supersampling factor for the preview
+  let sourceImage=null, sourceMeta={};
+
+  function hexToRgb(h){ const v=parseInt(h.slice(1),16); return [((v>>16)&255)/255,((v>>8)&255)/255,(v&255)/255]; }
+
+  /* history */
+  const history=[]; let hIndex=-1;
+  function pushHistory(){
+    history.splice(hIndex+1);
+    history.push({p:JSON.parse(JSON.stringify(params)), seed});
+    if(history.length>80) history.shift();
+    hIndex=history.length-1;
+    updateHistoryBtns();
+  }
+  function updateHistoryBtns(){
+    $('undoBtn').disabled = hIndex<=0;
+    $('redoBtn').disabled = hIndex>=history.length-1 || hIndex<0;
+  }
+
+  /* render */
+  function setUniforms(overrideSeed, forTransparent){
+    gl.uniform1i(U.uTex,0);
+    gl.uniform2f(U.uTexel, 1/canvas.width, 1/canvas.height);
+    gl.uniform1f(U.uDensity, params.density);
+    gl.uniform1f(U.uAngle, params.angle);
+    gl.uniform1f(U.uJitter, params.jitter);
+    gl.uniform1f(U.uEdge, params.edge);
+    gl.uniform1f(U.uInkAmt, params.ink);
+    gl.uniform1f(U.uContrast, params.contrast);
+    gl.uniform1f(U.uExposure, params.exposure);
+    gl.uniform1f(U.uSmooth, params.smooth);
+    gl.uniform1f(U.uStrength, params.strength);
+    gl.uniform1f(U.uSharpen, params.sharpen);
+    gl.uniform1f(U.uSat, params.sat);
+    gl.uniform1f(U.uFollow, params.follow);
+    gl.uniform1f(U.uStrokeLen, params.strokeLen);
+    gl.uniform1f(U.uWeight, params.weight);
+    gl.uniform1f(U.uWeightVar, params.weightVar);
+    gl.uniform1f(U.uTooth, params.tooth);
+    gl.uniform1f(U.uWash, params.wash);
+    gl.uniform1f(U.uEdgeThresh, params.edgeThresh);
+    gl.uniform1f(U.uPasses, params.passes);
+    gl.uniform1f(U.uLayers, params.layers);
+    gl.uniform1f(U.uShadowStart, params.shadowStart);
+    gl.uniform1f(U.uLayerGap, params.layerGap);
+    gl.uniform1f(U.uNib, params.nib);
+    gl.uniform1f(U.uNibAngle, params.nibAngle);
+    gl.uniform1f(U.uContourStyle, params.contourStyle);
+    gl.uniform1f(U.uContourWob, params.contourWob);
+    gl.uniform1f(U.uEmboss, params.emboss);
+    gl.uniform1f(U.uEmbossDir, params.embossDir);
+    gl.uniform1f(U.uMisreg, params.misreg);
+    gl.uniform1f(U.uMisregX, params.misregX);
+    gl.uniform1f(U.uMisregY, params.misregY);
+    gl.uniform1f(U.uPhotocopy, params.photocopy);
+    gl.uniform1f(U.uSpecks, params.specks);
+    gl.uniform1f(U.uPaperTex, params.paperTex);
+    gl.uniform1f(U.uRuling, params.ruling);
+    gl.uniform1f(U.uRuleScale, params.ruleScale);
+    gl.uniform1f(U.uRuleAmt, params.ruleAmt);
+    gl.uniform1f(U.uEdgeMode, params.edgeMode);
+    gl.uniform1f(U.uEdgeAmt, params.edgeAmt);
+
+    gl.uniform3fv(U.uRuleColor, hexToRgb(params.ruleColorHex));
+    gl.uniform1f(U.uBleed, params.bleed);
+    gl.uniform1f(U.uSeed, overrideSeed!==undefined ? overrideSeed : seed);
+    gl.uniform1f(U.uStyle, params.style);
+    gl.uniform1f(U.uEdgeOn, params.edgeOn?1:0);
+    gl.uniform1f(U.uHatchOn, params.hatchOn?1:0);
+    gl.uniform1f(U.uGrainOn, params.grainOn?1:0);
+    gl.uniform1f(U.uGrainAmt, params.grainAmt);
+    gl.uniform1f(U.uVigAmt, params.vigAmt);
+    gl.uniform1f(U.uInvert, params.invert?1:0);
+    gl.uniform1f(U.uSplit, peeking ? 1.0 : splitPos);
+    gl.uniform1f(U.uSplitOn, ((splitOn || peeking) && !forTransparent)?1:0);
+    gl.uniform1f(U.uTransparent, forTransparent?1:0);
+    gl.uniform3fv(U.uInkColor, hexToRgb(params.inkColorHex));
+    gl.uniform3fv(U.uInk2Color, hexToRgb(params.ink2ColorHex));
+    gl.uniform3fv(U.uPaperColor, hexToRgb(params.paperColorHex));
+    gl.uniform1f(U.uDuo, params.duo);
+    gl.uniform1f(U.uColorMode, params.colorMode);
+    gl.uniform1f(U.uColorAmt, params.colorAmt);
+    gl.uniform1f(U.uPoster, params.poster);
+    gl.uniform1f(U.uColorScatter, params.colorScatter);
+    gl.uniform1f(U.uWatercolor, params.watercolor);
+    gl.uniform1f(U.uWcEdge, params.wcEdge);
+    gl.uniform1f(U.uFilmGrain, params.filmGrain);
+    gl.uniform1f(U.uNoiseWash, params.noiseWash);
+    gl.uniform1f(U.uBloom, params.bloom);
+    gl.uniform1f(U.uFlatClear, params.flatClear);
+    gl.uniform1f(U.uAspect, canvas.width/canvas.height);
+  }
+
+  function render(overrideSeed, forTransparent){
+    if(!hasImage) return;
+    gl.viewport(0,0,canvas.width, canvas.height);
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    setUniforms(overrideSeed, forTransparent);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  }
+
+  /* image loading */
+  function uploadTexture(w,h){
+    const off=document.createElement('canvas');
+    off.width=w; off.height=h;
+    off.getContext('2d').drawImage(sourceImage,0,0,w,h);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,off);
+  }
+
+  function setRenderSize(scale){
+    const maxDim = 1500 * scale;
+    let w=sourceMeta.w, h=sourceMeta.h;
+    if(Math.max(w,h)>maxDim){ const s=maxDim/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+    canvas.width=w; canvas.height=h;
+    uploadTexture(w,h);
+    return {w,h};
+  }
+
+  function loadImage(img, meta, keepSettings){
+    sourceImage = img;
+    sourceMeta = {w: img.naturalWidth||img.width, h: img.naturalHeight||img.height, name: meta.name, type: meta.type};
+    hasImage=true;
+    document.body.classList.remove('no-image');
+    empty.style.display='none';
+    canvasWrap.style.display='block';
+    ['exportBtn','copyBtn','rerollBtn','varBtn','splitBtn','focusBtn','zoomIn','zoomOut','looksBtn','surpriseBtn'].forEach(id=>$(id).disabled=false);
+    // status now lives in the Info tab only
+    $('infoEmpty').style.display='none';
+    $('infoFilled').style.display='block';
+    $('infoName').textContent = meta.name || '—';
+    $('infoDims').textContent = sourceMeta.w+' × '+sourceMeta.h+' px';
+    updateInfoBuffer();
+    $('infoType').textContent = meta.type || 'image';
+
+    if(!keepSettings){
+      params = JSON.parse(JSON.stringify(defaults));
+      seed = Math.random()*100;
+      history.length=0; hIndex=-1; pushHistory();
+    }
+    syncUI();
+    fitToScreen();
+    render();
+  }
+
+  /* ---- batch queue ---- */
+  const batch=[]; let batchIndex=-1;
+  const filmstrip=$('filmstrip');
+
+  function decodeFile(file){
+    return new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=new Image();
+        img.onload=()=>res({img, name:file.name, type:file.type||'image/svg+xml', src:e.target.result});
+        img.onerror=rej;
+        img.src=e.target.result;
+      };
+      reader.onerror=rej;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderFilmstrip(){
+    filmstrip.innerHTML='';
+    filmstrip.classList.toggle('show', batch.length>1);
+    if(batch.length<=1) return;
+    batch.forEach((item,i)=>{
+      const cell=document.createElement('button');
+      cell.className='film-item'+(i===batchIndex?' active':'');
+      cell.title=item.name;
+      const im=document.createElement('img'); im.src=item.src; cell.appendChild(im);
+      const rm=document.createElement('button');
+      rm.className='rm'; rm.textContent='×';
+      rm.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        batch.splice(i,1);
+        if(batchIndex>=batch.length) batchIndex=batch.length-1;
+        renderFilmstrip();
+        if(batch.length) selectBatch(batchIndex);
+      });
+      cell.appendChild(rm);
+      cell.addEventListener('click', ()=>selectBatch(i));
+      filmstrip.appendChild(cell);
+    });
+    const count=document.createElement('div');
+    count.className='film-count';
+    count.textContent=batch.length+' images · settings apply to all';
+    filmstrip.appendChild(count);
+  }
+
+  function selectBatch(i){
+    batchIndex=i;
+    const item=batch[i];
+    loadImage(item.img, {name:item.name, type:item.type}, true);
+    renderFilmstrip();
+  }
+
+  async function handleFiles(files){
+    const list=Array.from(files).filter(f=>f.type.startsWith('image')||/\.svg$/i.test(f.name));
+    if(!list.length){ toast('No readable image in that drop.'); return; }
+    const firstLoad = batch.length===0;
+    for(const f of list){
+      try{ batch.push(await decodeFile(f)); }
+      catch(_){ toast('Skipped '+f.name); }
+    }
+    batchIndex = firstLoad ? 0 : batch.length-list.length;
+    const item=batch[batchIndex];
+    loadImage(item.img, {name:item.name, type:item.type}, !firstLoad);
+    renderFilmstrip();
+    if(list.length>1) toast(list.length+' images queued');
+  }
+  function handleFile(f){ if(f) handleFiles([f]); }
+
+  ['pickBtn','openBtn'].forEach(id=>$(id).addEventListener('click',()=>fileInput.click()));
+  fileInput.addEventListener('change', e=>{ handleFiles(e.target.files); e.target.value=''; });
+  dropZone.addEventListener('click', e=>{ if(!hasImage && e.target===dropZone) fileInput.click(); });
+  window.addEventListener('paste', e=>{
+    const items = e.clipboardData && e.clipboardData.files;
+    if(items && items.length) handleFile(items[0]);
+  });
+
+  /* UI sync */
+  const sliderMap = [
+    ['density','density',2,''], ['angle','angle',0,'°'], ['jitter','jitter',2,''],
+    ['edge','edge',2,''], ['ink','ink',2,''], ['contrast','contrast',2,''],
+    ['exposure','exposure',2,''], ['smooth','smooth',2,''], ['bleed','bleed',2,''],
+    ['strength','strength',2,''], ['sharpen','sharpen',2,''], ['sat','sat',2,''],
+    ['follow','follow',2,''], ['strokeLen','strokeLen',2,''], ['weight','weight',2,''],
+    ['weightVar','weightVar',2,''], ['tooth','tooth',2,''], ['wash','wash',2,''],
+    ['edgeThresh','edgeThresh',2,''], ['passes','passes',0,''], ['layers','layers',0,''],
+    ['shadowStart','shadowStart',2,''], ['layerGap','layerGap',2,''],
+    ['nibAngle','nibAngle',0,'°'], ['contourWob','contourWob',2,''],
+    ['emboss','emboss',2,''], ['embossDir','embossDir',0,'°'],
+    ['misreg','misreg',2,''], ['misregX','misregX',2,''], ['misregY','misregY',2,''],
+    ['photocopy','photocopy',2,''], ['specks','specks',2,''],
+    ['ruleScale','ruleScale',2,''], ['ruleAmt','ruleAmt',2,''], ['edgeAmt','edgeAmt',2,''],
+    ['grain','grainAmt',3,''], ['vig','vigAmt',2,''], ['duo','duo',2,''],
+    ['colorAmt','colorAmt',2,''], ['poster','poster',0,''], ['colorScatter','colorScatter',2,''],
+    ['watercolor','watercolor',2,''], ['wcEdge','wcEdge',2,''], ['bloom','bloom',2,''],
+    ['filmGrain','filmGrain',2,''], ['noiseWash','noiseWash',2,''], ['flatClear','flatClear',2,'']
+  ];
+  function syncUI(){
+    sliderMap.forEach(([id,key,dec,suf])=>{
+      const el=$(id); if(!el) return;
+      el.value = params[key];
+      const lbl = $('v_'+id); if(lbl) lbl.textContent = params[key].toFixed(dec)+suf;
+    });
+    { const pl=$('v_poster'); if(pl) pl.textContent = params.poster<1.5 ? 'Off' : Math.round(params.poster)+' bands'; }
+    $('inkColor').value=params.inkColorHex; $('paperColor').value=params.paperColorHex;
+    $('ink2Color').value=params.ink2ColorHex;
+    $('inkHex').textContent=params.inkColorHex.toUpperCase();
+    $('ink2Hex').textContent=params.ink2ColorHex.toUpperCase();
+    $('paperHex').textContent=params.paperColorHex.toUpperCase();
+    $('inkCircle').style.background=params.inkColorHex;
+    $('ink2Circle').style.background=params.ink2ColorHex;
+    $('paperCircle').style.background=params.paperColorHex;
+    if(typeof syncInkPalettes==='function') syncInkPalettes();
+    ['edgeOn','hatchOn','grainOn'].forEach(k=>{
+      const b=document.querySelector('[data-toggle="'+k+'"]'); if(b) b.classList.toggle('on', !!params[k]);
+    });
+    $('invertSwitch').checked=params.invert;
+    document.querySelectorAll('.style-btn').forEach(b=>b.classList.toggle('active', +b.dataset.style===params.style));
+    document.querySelectorAll('[data-nib]').forEach(b=>b.classList.toggle('active', +b.dataset.nib===params.nib));
+    document.querySelectorAll('[data-contour]').forEach(b=>b.classList.toggle('active', +b.dataset.contour===params.contourStyle));
+    document.querySelectorAll('[data-tex]').forEach(b=>b.classList.toggle('active', +b.dataset.tex===params.paperTex));
+    document.querySelectorAll('[data-rule]').forEach(b=>b.classList.toggle('active', +b.dataset.rule===params.ruling));
+    document.querySelectorAll('[data-edge]').forEach(b=>b.classList.toggle('active', +b.dataset.edge===params.edgeMode));
+    document.querySelectorAll('[data-cmode]').forEach(b=>b.classList.toggle('active', +b.dataset.cmode===params.colorMode));
+    $('ruleColor').value=params.ruleColorHex;
+    $('ruleHex').textContent=params.ruleColorHex.toUpperCase();
+    $('ruleCircle').style.background=params.ruleColorHex;
+    canvasWrap.classList.toggle('cutout', params.edgeMode>0);
+    $('infoSeed').textContent = seed.toFixed(2);
+    if(typeof refreshMarkers === 'function') refreshMarkers();
+    if(typeof updateEnablement === 'function') updateEnablement();
+  }
+
+  sliderMap.forEach(([id,key,dec,suf])=>{
+    const el=$(id); if(!el) return;
+    el.addEventListener('input',()=>{
+      params[key]=parseFloat(el.value);
+      const lbl=$('v_'+id); if(lbl) lbl.textContent=params[key].toFixed(dec)+suf;
+      if(id==='poster' && lbl) lbl.textContent = params.poster<1.5 ? 'Off' : Math.round(params.poster)+' bands';
+      render();
+    });
+    el.addEventListener('change', pushHistory);
+  });
+
+  $('inkColor').addEventListener('input',e=>{ params.inkColorHex=e.target.value; $('inkHex').textContent=e.target.value.toUpperCase(); $('inkCircle').style.background=e.target.value; render(); });
+  $('inkColor').addEventListener('change', pushHistory);
+  $('paperColor').addEventListener('input',e=>{ params.paperColorHex=e.target.value; $('paperHex').textContent=e.target.value.toUpperCase(); $('paperCircle').style.background=e.target.value; render(); });
+  $('paperColor').addEventListener('change', pushHistory);
+  $('ink2Color').addEventListener('input',e=>{ params.ink2ColorHex=e.target.value; $('ink2Hex').textContent=e.target.value.toUpperCase(); $('ink2Circle').style.background=e.target.value; syncInkPalettes(); render(); });
+  $('ink2Color').addEventListener('change', pushHistory);
+  document.querySelectorAll('#paperChips .chip').forEach(c=>c.addEventListener('click',()=>{
+    params.paperColorHex=c.dataset.paper; syncUI(); render(); pushHistory();
+  }));
+
+  document.querySelectorAll('.style-btn').forEach(b=>b.addEventListener('click',()=>{
+    params.style=+b.dataset.style; syncUI(); render(); pushHistory();
+  }));
+  document.querySelectorAll('[data-nib]').forEach(b=>b.addEventListener('click',()=>{
+    params.nib=+b.dataset.nib; syncUI(); render(); pushHistory();
+  }));
+  document.querySelectorAll('[data-contour]').forEach(b=>b.addEventListener('click',()=>{
+    params.contourStyle=+b.dataset.contour; syncUI(); render(); pushHistory();
+  }));
+  document.querySelectorAll('[data-ssaa]').forEach(b=>b.addEventListener('click',()=>{
+    ssaa=+b.dataset.ssaa;
+    document.querySelectorAll('[data-ssaa]').forEach(x=>x.classList.toggle('active', x===b));
+    setPreviewSize();
+  }));
+  document.querySelectorAll('[data-tex]').forEach(b=>b.addEventListener('click',()=>{
+    params.paperTex=+b.dataset.tex; params.grainOn=true;
+    syncUI(); render(); pushHistory();
+  }));
+  document.querySelectorAll('[data-rule]').forEach(b=>b.addEventListener('click',()=>{
+    params.ruling=+b.dataset.rule; syncUI(); render(); pushHistory();
+  }));
+  document.querySelectorAll('[data-edge]').forEach(b=>b.addEventListener('click',()=>{
+    params.edgeMode=+b.dataset.edge; syncUI(); render(); pushHistory();
+    canvasWrap.classList.toggle('cutout', params.edgeMode>0);
+  }));
+  document.querySelectorAll('[data-cmode]').forEach(b=>b.addEventListener('click',()=>{
+    params.colorMode=+b.dataset.cmode; syncUI(); render(); pushHistory();
+  }));
+  $('ruleColor').addEventListener('input', e=>{
+    params.ruleColorHex=e.target.value;
+    $('ruleHex').textContent=e.target.value.toUpperCase();
+    $('ruleCircle').style.background=e.target.value;
+    render();
+  });
+  $('ruleColor').addEventListener('change', pushHistory);
+
+  document.querySelectorAll('.layer-toggle[data-toggle]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.toggle; params[k]=!params[k]; syncUI(); render(); pushHistory();
+  }));
+  $('invertSwitch').addEventListener('change',e=>{ params.invert=e.target.checked; render(); pushHistory(); });
+
+  /* zoom & pan */
+  let zoom=1, panX=0, panY=0;
+  function applyTransform(){
+    canvasWrap.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    $('zoomLabel').textContent = Math.round(zoom*100)+'%';
+  }
+  // The preview used to render at a fixed 1500px and let the browser scale it down.
+  // That resampling is what produced the phantom diagonal banding, so the backing
+  // store is now matched to the pixels actually on screen (times DPR and the
+  // supersampling factor), and nothing gets resampled.
+  let cssW=0, cssH=0;
+  function updateInfoBuffer(){
+    const el=$('infoRender');
+    if(el) el.textContent = canvas.width+' × '+canvas.height+' px';
+  }
+
+  function setPreviewSize(){
+    if(!hasImage || !cssW) return;
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    const zoomBoost = Math.min(Math.max(zoom,1), 2.5);
+    let bw = Math.round(cssW * dpr * ssaa * zoomBoost);
+    let bh = Math.round(cssH * dpr * ssaa * zoomBoost);
+    const cap = 4096;
+    if(Math.max(bw,bh) > cap){ const k = cap/Math.max(bw,bh); bw=Math.round(bw*k); bh=Math.round(bh*k); }
+    if(bw===canvas.width && bh===canvas.height) return;
+    canvas.width=bw; canvas.height=bh;
+    uploadTexture(bw,bh);
+    updateInfoBuffer();
+    render();
+  }
+
+  function fitToScreen(){
+    zoom=1; panX=0; panY=0;
+    const stage = document.querySelector('.stage');
+    const availW = stage.clientWidth - 48, availH = stage.clientHeight - 48;
+    const sw = sourceMeta.w, sh = sourceMeta.h;
+    if(sw && sh){
+      const k = Math.min(availW/sw, availH/sh, 1);
+      cssW = Math.round(sw*k); cssH = Math.round(sh*k);
+      canvas.style.width = cssW+'px';
+      canvas.style.height = cssH+'px';
+      setPreviewSize();
+    }
+    applyTransform();
+  }
+
+  let ssaaTimer;
+  function schedulePreviewSize(){
+    clearTimeout(ssaaTimer);
+    ssaaTimer = setTimeout(setPreviewSize, 180);
+  }
+  $('zoomIn').addEventListener('click',()=>{ zoom=Math.min(zoom*1.25,6); applyTransform(); schedulePreviewSize(); });
+  $('zoomOut').addEventListener('click',()=>{ zoom=Math.max(zoom/1.25,0.2); applyTransform(); schedulePreviewSize(); });
+  $('zoomLabel').addEventListener('click', fitToScreen);
+  document.querySelector('.stage').addEventListener('wheel', e=>{
+    if(!hasImage) return;
+    e.preventDefault();
+    zoom = Math.min(6, Math.max(0.2, zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+    applyTransform(); schedulePreviewSize();
+  }, {passive:false});
+
+  let dragging=false, dsx=0, dsy=0;
+  canvasWrap.addEventListener('pointerdown', e=>{
+    if(e.target.closest('#splitHandle')) return;
+    dragging=true; dsx=e.clientX-panX; dsy=e.clientY-panY;
+    canvasWrap.setPointerCapture(e.pointerId);
+    canvasWrap.classList.add('panning');
+  });
+  canvasWrap.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    panX=e.clientX-dsx; panY=e.clientY-dsy; applyTransform();
+  });
+  const endPan = ()=>{ dragging=false; canvasWrap.classList.remove('panning'); };
+  canvasWrap.addEventListener('pointerup', endPan);
+  canvasWrap.addEventListener('pointercancel', endPan);
+
+  // pinch to zoom
+  const pointers=new Map(); let pinchStart=0, pinchZoom=1;
+  canvasWrap.addEventListener('pointerdown', e=>pointers.set(e.pointerId,e));
+  canvasWrap.addEventListener('pointermove', e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId,e);
+    if(pointers.size===2){
+      dragging=false;
+      const [a,b]=[...pointers.values()];
+      const d=Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+      if(!pinchStart){ pinchStart=d; pinchZoom=zoom; }
+      else { zoom=Math.min(6,Math.max(0.2, pinchZoom*(d/pinchStart))); applyTransform(); }
+    }
+  });
+  const dropPointer=e=>{ pointers.delete(e.pointerId); if(pointers.size<2) pinchStart=0; };
+  canvasWrap.addEventListener('pointerup', dropPointer);
+  canvasWrap.addEventListener('pointercancel', dropPointer);
+  window.addEventListener('resize', ()=>{ if(hasImage) fitToScreen(); });
+
+  /* split compare */
+  const splitHandle = $('splitHandle');
+  function setSplit(on){
+    splitOn=on;
+    $('splitBtn').classList.toggle('active', on);
+    placeSplitHandle();
+    render();
+  }
+  $('splitBtn').addEventListener('click', ()=>{ if(hasImage) setSplit(!splitOn); });
+  let splitDrag=false;
+  splitHandle.addEventListener('pointerdown', e=>{
+    e.stopPropagation(); splitDrag=true; splitHandle.setPointerCapture(e.pointerId);
+  });
+  splitHandle.addEventListener('pointermove', e=>{
+    if(!splitDrag) return;
+    const r = canvas.getBoundingClientRect();
+    splitPos = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
+    placeSplitHandle();
+    render();
+  });
+  splitHandle.addEventListener('pointerup', ()=>splitDrag=false);
+  splitHandle.addEventListener('pointercancel', ()=>splitDrag=false);
+
+  function placeSplitHandle(){
+    splitHandle.style.left=(splitPos*100)+'%';
+    splitHandle.style.display = splitOn ? 'block' : 'none';
+  }
+
+  /* focus mode hides both panels so the sheet gets the whole window */
+  function setFocus(on){
+    document.body.classList.toggle('focus', on);
+    $('focusBtn').classList.toggle('active', on);
+    setTimeout(()=>{ if(hasImage) fitToScreen(); }, 30);
+  }
+  $('focusBtn').addEventListener('click', ()=>setFocus(!document.body.classList.contains('focus')));
+
+  /* variations */
+  const varGrid=$('varGrid'), variations=$('variations');
+  let varSeeds=[];
+  function buildVariations(){
+    if(!hasImage) return;
+    varGrid.innerHTML='';
+    varSeeds = [seed].concat([0,0,0].map(()=>Math.random()*100));
+    const original = seed;
+    varSeeds.forEach((s,i)=>{
+      render(s);
+      const thumb=document.createElement('canvas');
+      thumb.width=180; thumb.height=180;
+      const ctx=thumb.getContext('2d');
+      const side = Math.min(canvas.width, canvas.height);
+      ctx.drawImage(canvas, (canvas.width-side)/2, (canvas.height-side)/2, side, side, 0,0,180,180);
+      const cell=document.createElement('button');
+      cell.className='var-cell'+(i===0?' active':'');
+      cell.appendChild(thumb);
+      cell.addEventListener('click',()=>{
+        seed=s; render(); pushHistory(); syncUI();
+        varGrid.querySelectorAll('.var-cell').forEach(c=>c.classList.remove('active'));
+        cell.classList.add('active');
+      });
+      varGrid.appendChild(cell);
+    });
+    seed = original;
+    render();
+  }
+  $('varBtn').addEventListener('click', ()=>{
+    if(!hasImage) return;
+    const show = !variations.classList.contains('show');
+    variations.classList.toggle('show', show);
+    $('varBtn').classList.toggle('active', show);
+    if(show) buildVariations();
+  });
+  $('varMore').addEventListener('click', buildVariations);
+
+  $('rerollBtn').addEventListener('click', ()=>{ seed=Math.random()*100; syncUI(); render(); pushHistory(); if(variations.classList.contains('show')) buildVariations(); });
+
+  /* export */
+  const sheet=$('exportSheet');
+  function updateExportSize(){
+    if(!sourceMeta.w) return;
+    const maxDim=1500*exportScale;
+    let w=sourceMeta.w,h=sourceMeta.h;
+    if(Math.max(w,h)>maxDim){ const s=maxDim/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+    $('exportSize').textContent = w+' × '+h+' px';
+  }
+  function openSheet(){
+    if(!hasImage) return;
+    updateExportSize();
+    $('exportAllRow').style.display = batch.length>1 ? 'flex' : 'none';
+    $('exportAll').textContent = 'Export all '+batch.length+' images';
+    sheet.classList.add('show');
+  }
+  $('exportBtn').addEventListener('click', openSheet);
+  $('cancelExport').addEventListener('click', ()=>sheet.classList.remove('show'));
+  sheet.addEventListener('click', e=>{ if(e.target===sheet) sheet.classList.remove('show'); });
+  document.querySelectorAll('#scaleSeg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#scaleSeg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); exportScale=+b.dataset.scale; updateExportSize();
+  }));
+  $('transparentSwitch').addEventListener('change', e=>transparent=e.target.checked);
+
+  document.querySelectorAll('#formatSeg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#formatSeg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    exportFormat=b.dataset.format;
+    updateFormatUI();
+  }));
+
+  function updateFormatUI(){
+    const isJpg = exportFormat==='jpg';
+    $('transparentSwitch').disabled = isJpg;
+    $('transparentSwitch').parentElement.style.opacity = isJpg ? .35 : 1;
+    $('confirmExport').textContent = 'Download '+exportFormat.toUpperCase();
+    $('exportSub').textContent = isJpg
+      ? 'Flattened photo format — no transparency, smaller file.'
+      : 'Lossless raster with optional transparent paper.';
+    updateExportSize();
+  }
+
+  function renderAtScale(scale, useTransparent, cb, mime, quality){
+    const prevW=canvas.width, prevH=canvas.height;
+    const prevSplit=splitOn; splitOn=false;
+    setRenderSize(scale);
+    render(undefined, useTransparent);
+    const finish = blob=>{
+      splitOn=prevSplit;
+      canvas.width=prevW; canvas.height=prevH;
+      uploadTexture(prevW, prevH);
+      render();
+      cb(blob);
+    };
+    if(mime==='image/jpeg'){
+      // JPEG has no alpha: flatten onto the paper colour first
+      const flat=document.createElement('canvas');
+      flat.width=canvas.width; flat.height=canvas.height;
+      const fc=flat.getContext('2d');
+      fc.fillStyle = params.invert ? invertHex(params.paperColorHex) : params.paperColorHex;
+      fc.fillRect(0,0,flat.width,flat.height);
+      fc.drawImage(canvas,0,0);
+      flat.toBlob(finish, 'image/jpeg', quality||0.92);
+    } else {
+      canvas.toBlob(finish, mime||'image/png');
+    }
+  }
+
+  function invertHex(hex){
+    const v=parseInt(hex.slice(1),16);
+    const r=255-((v>>16)&255), g=255-((v>>8)&255), b=255-(v&255);
+    return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+
+  function saveBlob(blob, ext){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const base=(sourceMeta.name||'sketch').replace(/\.[^.]+$/,'');
+    a.href=url; a.download=base+'-inhandz.'+ext; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }
+
+  function exportCurrent(done){
+    const mime = exportFormat==='jpg' ? 'image/jpeg' : 'image/png';
+    renderAtScale(exportScale, exportFormat==='png' && transparent, blob=>{
+      saveBlob(blob, exportFormat==='jpg' ? 'jpg' : 'png');
+      toast('Sketch downloaded');
+      if(done) done();
+    }, mime, 0.92);
+  }
+
+  $('confirmExport').addEventListener('click', ()=>{
+    sheet.classList.remove('show');
+    exportCurrent();
+  });
+
+  $('exportAll').addEventListener('click', async ()=>{
+    sheet.classList.remove('show');
+    const startIndex = batchIndex;
+    toast('Exporting '+batch.length+' images…');
+    for(let i=0;i<batch.length;i++){
+      const item=batch[i];
+      await new Promise(res=>{
+        loadImage(item.img, {name:item.name, type:item.type}, true);
+        exportCurrent(()=>setTimeout(res, 400));
+      });
+    }
+    if(startIndex>=0) selectBatch(startIndex);
+    toast('All images exported');
+  });
+
+  $('copyBtn').addEventListener('click', ()=>{
+    renderAtScale(1, false, blob=>{
+      if(navigator.clipboard && window.ClipboardItem){
+        navigator.clipboard.write([new ClipboardItem({'image/png':blob})])
+          .then(()=>toast('Copied to clipboard'))
+          .catch(()=>toast('Clipboard blocked by browser'));
+      } else toast('Clipboard not supported here');
+    });
+  });
+
+  /* toast */
+  let toastTimer;
+  function toast(msg){
+    const t=$('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+  }
+
+  /* history buttons */
+  function restore(state){ params=JSON.parse(JSON.stringify(state.p)); seed=state.seed; syncUI(); render(); }
+  $('undoBtn').addEventListener('click',()=>{ if(hIndex>0){ hIndex--; restore(history[hIndex]); updateHistoryBtns(); } });
+  $('redoBtn').addEventListener('click',()=>{ if(hIndex<history.length-1){ hIndex++; restore(history[hIndex]); updateHistoryBtns(); } });
+
+  /* shortcuts */
+  window.addEventListener('keydown', e=>{
+    const mod=e.metaKey||e.ctrlKey;
+    if(mod && e.key.toLowerCase()==='z'){ e.preventDefault(); (e.shiftKey?$('redoBtn'):$('undoBtn')).click(); return; }
+    if(mod && e.key.toLowerCase()==='e'){ e.preventDefault(); openSheet(); return; }
+    if(mod || !hasImage || e.target.tagName==='INPUT' || e.target.tagName==='SELECT') return;
+    const k=e.key.toLowerCase();
+    if(k==='c'){ setSplit(!splitOn); }
+    else if(k==='r'){ $('rerollBtn').click(); }
+    else if(k==='v'){ $('varBtn').click(); }
+    else if(k==='0'){ fitToScreen(); }
+    else if(k==='f'){ setFocus(!document.body.classList.contains('focus')); }
+    else if(k==='o'){ fileInput.click(); }
+    else if(k==='l'){ cycleLook(); }
+    else if(k==='s'){ surprise(); }
+  });
+
+
+
+  /* ---------------- UX helpers ---------------- */
+
+  // Controls that cannot affect the current mode are dimmed rather than left
+  // sitting there doing nothing when you drag them.
+  function groupByTitle(name){
+    return [...document.querySelectorAll('.panel-scroll .group')]
+      .find(g=>{ const t=g.querySelector('.group-title'); return t && t.textContent.trim().startsWith(name); });
+  }
+  function fieldOf(id){ const el=$(id); return el ? el.closest('.field') : null; }
+  function setOff(el, off){ if(el) el.classList.toggle('is-off', !!off); }
+
+  function updateEnablement(){
+    const st = params.style;
+    const outlineOnly = st===3;
+    const stipple = st===1;
+    const tonal = st===7 || st===8;   // spray, graphite: no line controls
+    const noStrokes = outlineOnly || !params.hatchOn;
+
+    setOff(groupByTitle('Nib'), noStrokes || stipple || tonal);
+    setOff(groupByTitle('Shading layers'), noStrokes || stipple || tonal);
+    setOff(groupByTitle('Line'), noStrokes);
+    ['angle','follow','strokeLen'].forEach(id=>setOff(fieldOf(id), noStrokes || stipple || tonal));
+    setOff(fieldOf('density'), noStrokes);
+    setOff(fieldOf('ink'), noStrokes);
+    setOff(fieldOf('jitter'), noStrokes);
+
+    // contour
+    const noEdges = !params.edgeOn || params.edge <= 0.001;
+    ['edgeThresh','passes','contourWob'].forEach(id=>setOff(fieldOf(id), noEdges));
+    const chips = document.querySelector('#contourChips');
+    setOff(chips, noEdges);
+    setOff(fieldOf('contourWob'), noEdges || params.contourStyle!==3);
+
+    // pigment only matters when ink takes colour from the picture
+    setOff(fieldOf('sat'), params.bleed<=0.001 && st!==6);
+
+    // paper
+    setOff(fieldOf('grain'), !params.grainOn);
+    setOff(groupByTitle('Paper stock'), !params.grainOn);
+    const blank = params.ruling===0;
+    ['ruleScale','ruleAmt'].forEach(id=>setOff(fieldOf(id), blank));
+    setOff($('ruleColor') ? $('ruleColor').closest('.swatch-row') : null, blank);
+    setOff(fieldOf('edgeAmt'), params.edgeMode===0);
+    setOff(fieldOf('embossDir'), params.emboss<=0.001);
+    ['bloom','wcEdge'].forEach(id=>setOff(fieldOf(id), params.watercolor<=0.001));
+    ['misregX','misregY'].forEach(id=>setOff(fieldOf(id), params.misreg<=0.001));
+    const noColor = params.colorMode===0;
+    ['colorAmt','poster','colorScatter'].forEach(id=>setOff(fieldOf(id), noColor));
+    const noDuo = params.duo<=0.001;
+    setOff($('ink2Color') ? $('ink2Color').closest('.swatch-row') : null, noDuo);
+    setOff($('ink2Palette'), noDuo);
+    setOff(fieldOf('embossDir'), params.emboss<=0.001);
+  }
+
+
+  // which parameter each control edits, so we can mark and reset things
+  const controlKeys = {};
+  sliderMap.forEach(([id,key])=>{ controlKeys['#'+id]=key; });
+  const chipKeys = {nib:'nib', contour:'contourStyle', tex:'paperTex', rule:'ruling', edge:'edgeMode', style:'style'};
+
+  function groupKeys(g){
+    const keys=[];
+    g.querySelectorAll('input[type=range]').forEach(i=>{ if(controlKeys['#'+i.id]) keys.push(controlKeys['#'+i.id]); });
+    Object.keys(chipKeys).forEach(attr=>{ if(g.querySelector('[data-'+attr+']')) keys.push(chipKeys[attr]); });
+    if(g.querySelector('#inkColor')) keys.push('inkColorHex');
+    if(g.querySelector('#paperColor')) keys.push('paperColorHex');
+    if(g.querySelector('#ruleColor')) keys.push('ruleColorHex');
+    if(g.querySelector('#grain')) keys.push('grainOn','grainAmt');
+    if(g.querySelector('#vig')) keys.push('vigAmt');
+    if(g.querySelector('#invertSwitch')) keys.push('invert');
+    return keys;
+  }
+
+  function refreshMarkers(){
+    document.querySelectorAll('.field').forEach(f=>{
+      const inp = f.querySelector('input[type=range]');
+      if(!inp) return;
+      const key = controlKeys['#'+inp.id];
+      f.classList.toggle('changed', key && String(params[key])!==String(defaults[key]));
+    });
+  }
+
+  // click a value (or double-click the row) to put that one control back
+  function resetControl(id){
+    const key = controlKeys['#'+id];
+    if(!key) return;
+    params[key] = defaults[key];
+    syncUI(); render(); pushHistory();
+  }
+  document.querySelectorAll('.field').forEach(f=>{
+    const inp=f.querySelector('input[type=range]'); if(!inp) return;
+    const val=f.querySelector('.val');
+    if(val){ val.title='Click to reset'; val.addEventListener('click', ()=>resetControl(inp.id)); }
+    f.addEventListener('dblclick', ()=>resetControl(inp.id));
+  });
+
+  /* settings are just the parameter set — save them, share them, load them back */
+  $('saveLook').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify({app:'inhandz', version:1, params}, null, 2)], {type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='inhandz-settings.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    toast('Settings saved');
+  });
+  $('loadLook').addEventListener('click', ()=>$('lookInput').click());
+  $('lookInput').addEventListener('change', e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        const incoming = data && data.params ? data.params : data;
+        if(!incoming || typeof incoming!=='object') throw new Error('shape');
+        // only accept keys we know, so a stray file can't corrupt the state
+        const next=JSON.parse(JSON.stringify(defaults));
+        Object.keys(defaults).forEach(k=>{ if(k in incoming) next[k]=incoming[k]; });
+        params=next; syncUI(); render(); pushHistory();
+        toast('Settings loaded');
+      }catch(_){ toast('That file is not an inhandz settings file'); }
+    };
+    r.readAsText(f);
+    e.target.value='';
+  });
+
+  $('resetAll').addEventListener('click', ()=>{
+    const keepPaper = ['inkColorHex','ink2ColorHex','duo','colorMode','colorAmt','poster','colorScatter','paperColorHex','paperTex','ruling','ruleColorHex','ruleScale','ruleAmt','edgeMode','edgeAmt'];
+    const kept={}; keepPaper.forEach(k=>kept[k]=params[k]);
+    params = JSON.parse(JSON.stringify(defaults));
+    Object.assign(params, kept);
+    syncUI(); render(); pushHistory();
+    toast('Adjustments reset');
+  });
+
+  /* hold Space to peek at the original */
+  let peeking=false;
+  function setPeek(on){
+    if(peeking===on || !hasImage) return;
+    peeking=on;
+    document.body.classList.toggle('peeking', on);
+    render();
+  }
+  window.addEventListener('keydown', e=>{
+    if(e.code==='Space' && hasImage && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){
+      e.preventDefault(); setPeek(true);
+    }
+    if(e.key==='Escape'){
+      if(sheet.classList.contains('show')) sheet.classList.remove('show');
+      else if(variations.classList.contains('show')){ variations.classList.remove('show'); $('varBtn').classList.remove('active'); }
+      else closeAll();
+    }
+  });
+  window.addEventListener('keyup', e=>{ if(e.code==='Space') setPeek(false); });
+  window.addEventListener('blur', ()=>setPeek(false));
+
+  /* drop a file anywhere in the window */
+  const veil=$('dropveil');
+  let dragDepth=0;
+  window.addEventListener('dragenter', e=>{
+    if(!e.dataTransfer || Array.from(e.dataTransfer.types||[]).indexOf('Files')===-1) return;
+    e.preventDefault(); dragDepth++; veil.classList.add('show');
+  });
+  window.addEventListener('dragover', e=>{ if(veil.classList.contains('show')) e.preventDefault(); });
+  window.addEventListener('dragleave', e=>{ dragDepth=Math.max(0,dragDepth-1); if(!dragDepth) veil.classList.remove('show'); });
+  window.addEventListener('drop', e=>{
+    if(!e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault(); dragDepth=0; veil.classList.remove('show');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  /* a pill for work that takes a moment */
+  function busy(on, msg){
+    const b=$('busy');
+    if(msg) b.textContent=msg;
+    b.classList.toggle('show', !!on);
+  }
+
+  /* colour palettes and theme presets */
+  const inkColours = ['#241f1a','#1a1a20','#15130f','#c1553f','#e2483d','#d1443a',
+                      '#2c3f8f','#3a5fd0','#1b6fb3','#2f8f6b','#e5952a','#8a5fa8',
+                      '#b0407a','#0f0f0f','#5a4632','#3d6b7a'];
+  function buildInkPalette(hostId, key){
+    const host=$(hostId); if(!host) return;
+    host.innerHTML='';
+    inkColours.forEach(c=>{
+      const b=document.createElement('button');
+      b.className='ink-swatch'; b.style.background=c; b.title=c.toUpperCase();
+      b.addEventListener('click',()=>{
+        params[key]=c; syncUI(); render(); pushHistory();
+      });
+      host.appendChild(b);
+    });
+  }
+  function syncInkPalettes(){
+    $('inkPalette') && $('inkPalette').querySelectorAll('.ink-swatch').forEach(b=>
+      b.classList.toggle('active', b.style.background && rgbEq(b.style.background, params.inkColorHex)));
+    $('ink2Palette') && $('ink2Palette').querySelectorAll('.ink-swatch').forEach(b=>
+      b.classList.toggle('active', b.style.background && rgbEq(b.style.background, params.ink2ColorHex)));
+  }
+  function rgbEq(css, hex){
+    const m=css.match(/\d+/g); if(!m) return false;
+    const h=hex.replace('#',''); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),bl=parseInt(h.slice(4,6),16);
+    return +m[0]===r && +m[1]===g && +m[2]===bl;
+  }
+  buildInkPalette('inkPalette','inkColorHex');
+  buildInkPalette('ink2Palette','ink2ColorHex');
+
+  const themes = [
+    {name:'Classic',   ink:'#241f1a', ink2:'#5a4632', paper:'#e7ddc4', duo:0},
+    {name:'Riso red/blue', ink:'#2c3f8f', ink2:'#e2483d', paper:'#f4efe2', duo:1},
+    {name:'Blueprint', ink:'#dfe9f5', ink2:'#9fc0e8', paper:'#1b3a63', duo:0},
+    {name:'Newsprint', ink:'#1a1a1a', ink2:'#555', paper:'#d8d2c2', duo:0},
+    {name:'Sunset',    ink:'#e5952a', ink2:'#b0407a', paper:'#fdf3e2', duo:1},
+    {name:'Chalk noir',ink:'#f2ede0', ink2:'#8fb0c8', paper:'#14140f', duo:0.5},
+    {name:'Forest',    ink:'#243b2e', ink2:'#7a5230', paper:'#eae4cf', duo:0.7},
+    {name:'Cyanotype', ink:'#0d3b66', ink2:'#144b7a', paper:'#e8e6d0', duo:0}
+  ];
+  const themeGrid=$('themeGrid');
+  if(themeGrid){
+    themes.forEach(t=>{
+      const b=document.createElement('button');
+      b.className='theme-btn';
+      b.innerHTML='<span class="theme-swatches"><span style="background:'+t.paper+'"></span>'+
+                  '<span style="background:'+t.ink+'"></span>'+
+                  (t.duo>0?'<span style="background:'+t.ink2+'"></span>':'')+
+                  '</span><span class="theme-name">'+t.name+'</span>';
+      b.addEventListener('click',()=>{
+        params.inkColorHex=t.ink; params.ink2ColorHex=t.ink2;
+        params.paperColorHex=t.paper; params.duo=t.duo;
+        syncUI(); render(); pushHistory();
+      });
+      themeGrid.appendChild(b);
+    });
+  }
+
+  /* ---- quick looks ---- */
+  const looks = [
+    {name:'Ink sketch',      p:{style:0, follow:0.4, strokeLen:0.5, contourStyle:1, passes:2, density:1.15, weight:0.2, weightVar:0.26, ink:1, contrast:1.05, colorMode:0, emboss:0, misreg:0, photocopy:0, specks:0, duo:0}},
+    {name:'Woodcut',         p:{style:4, angle:12, density:0.85, edge:1.2, contourStyle:5, smooth:1.6, colorMode:0, duo:0}},
+    {name:'Riso two-tone',   p:{style:0, density:1.2, duo:1, inkColorHex:'#2c3f8f', ink2ColorHex:'#e2483d', paperColorHex:'#f4efe2', colorMode:0, misreg:0.4, misregX:1.2, specks:0.2}},
+    {name:'Halftone comic',  p:{style:1, density:1.6, contrast:1.3, edge:1.4, colorMode:0, poster:0, specks:0.15}},
+    {name:'Colour poster',   p:{style:0, density:1.1, colorMode:2, colorAmt:1, poster:4, colorScatter:0.2, edge:0.9}},
+    {name:'Soft graphite',   p:{style:8, density:1, contrast:1, smooth:1.2, colorMode:0, emboss:0}},
+    {name:'Spray stencil',   p:{style:7, density:1.3, contrast:1.2, colorMode:0, specks:0.25}},
+    {name:'Blueprint',       p:{style:3, density:1.2, edge:1.7, contourStyle:5, inkColorHex:'#dfe9f5', paperColorHex:'#1b3a63', colorMode:0, duo:0}},
+    {name:'Screenprint',     p:{style:0, density:1.1, colorMode:3, colorAmt:1, poster:3, colorScatter:0.15, paperColorHex:'#f4efe2'}},
+    {name:'Old photocopy',   p:{style:0, density:1.3, photocopy:0.8, specks:0.3, contrast:1.4, colorMode:0, paperColorHex:'#e8e4d6'}},
+    {name:'Watercolour',     p:{style:3, edge:0.9, contourStyle:1, watercolor:0.85, bloom:0.7, wcEdge:0.7, colorMode:1, colorAmt:1, smooth:1.4, contrast:1.05, paperColorHex:'#f2ece0', flatClear:0.4}}
+  ];
+  let lookIdx=-1;
+  function applyLook(L){
+    Object.keys(L.p).forEach(k=>{ params[k]=L.p[k]; });
+    seed=Math.random()*100;
+    syncUI(); render(); pushHistory();
+    toast(L.name);
+  }
+  function cycleLook(){
+    if(!hasImage) return;
+    lookIdx=(lookIdx+1)%looks.length;
+    applyLook(looks[lookIdx]);
+  }
+  function surprise(){
+    if(!hasImage) return;
+    // random look, then jitter a few numeric params for variety
+    const L=looks[Math.floor(Math.random()*looks.length)];
+    applyLook(L);
+    params.angle=Math.floor(Math.random()*180);
+    params.follow=+(Math.random()*0.8).toFixed(2);
+    params.jitter=+(0.3+Math.random()*0.9).toFixed(2);
+    if(Math.random()<0.4) params.colorScatter=+(Math.random()*0.5).toFixed(2);
+    seed=Math.random()*100;
+    syncUI(); render(); pushHistory();
+    toast('Surprise: '+L.name);
+  }
+  $('looksBtn') && $('looksBtn').addEventListener('click', cycleLook);
+  $('surpriseBtn') && $('surpriseBtn').addEventListener('click', surprise);
+
+  /* ---- quick looks ---- END */
+
+  /* ---- settings search ---- */
+  (function(){
+    const box=$('settingSearch'); if(!box) return;
+    const panels=[...document.querySelectorAll('[data-rpanel="draw"],[data-rpanel="colour"],[data-rpanel="paper"]')];
+    function labelText(el){
+      const l=el.querySelector('.field-label span, .group-title span, .swatch-label, .opt-chip, .chip, .theme-name, .style-btn .n');
+      return (el.textContent||'').toLowerCase();
+    }
+    function apply(q){
+      q=q.trim().toLowerCase();
+      document.body.classList.toggle('searching', !!q);
+      if(!q){
+        // restore: show the active tab only, clear hide flags
+        document.querySelectorAll('.search-hide,.search-hit').forEach(e=>e.classList.remove('search-hide','search-hit'));
+        const active=document.querySelector('[data-rtab].active');
+        const name=active?active.dataset.rtab:'draw';
+        panels.forEach(p=>p.hidden = p.dataset.rpanel!==name);
+        return;
+      }
+      panels.forEach(p=>{ p.hidden=false; });
+      panels.forEach(pan=>{
+        pan.querySelectorAll(':scope > .group').forEach(g=>{
+          g.classList.remove('collapsed');   // open so matches are visible
+          let anyField=false;
+          const gTitle=(g.querySelector('.group-title')||{}).textContent||'';
+          const groupMatch=gTitle.toLowerCase().includes(q);
+          // filter children
+          g.querySelectorAll('.field, .opt-chips, .swatch-row, .theme-grid, .ink-palette, .paper-chips, .note, .style-grid').forEach(row=>{
+            const t=(row.textContent||'').toLowerCase();
+            const hit = groupMatch || t.includes(q);
+            row.classList.toggle('search-hide', !hit);
+            if(hit) anyField=true;
+            if(row.classList.contains('field')) row.classList.toggle('search-hit', hit && !groupMatch);
+          });
+          g.classList.toggle('search-hide', !anyField && !groupMatch);
+        });
+      });
+    }
+    box.addEventListener('input', ()=>apply(box.value));
+    $('searchClear').addEventListener('click', ()=>{ box.value=''; apply(''); box.focus(); });
+    box.addEventListener('keydown', e=>{ if(e.key==='Escape'){ box.value=''; apply(''); box.blur(); } });
+  })();
+
+  /* collapsible setting groups: only the ones you're using stay open */
+  const openByDefault = ['Stroke style','Nib','Line','Colours','Source colour','Ink','Paper','Paper stock','Ruling','Sheet edge'];
+  document.querySelectorAll('.panel-scroll .group').forEach(g=>{
+    const title = g.querySelector('.group-title');
+    if(!title) return;
+    const name = title.textContent.trim();
+    title.innerHTML = '<span>'+name+'</span><i class="caret"></i>';
+    if(openByDefault.indexOf(name) === -1) g.classList.add('collapsed');
+    title.addEventListener('click', ()=>g.classList.toggle('collapsed'));
+  });
+  refreshMarkers();
+
+  /* tabs */
+  function bindTabs(attr, panelAttr){
+    document.querySelectorAll('['+attr+']').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('['+attr+']').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('['+panelAttr+']').forEach(p=>p.hidden = p.getAttribute(panelAttr)!==btn.getAttribute(attr));
+    }));
+  }
+  bindTabs('data-rtab','data-rpanel');
+  function markTab(name){
+    document.body.classList.remove('tab-draw','tab-colour','tab-paper','tab-info');
+    document.body.classList.add('tab-'+name);
+  }
+  document.querySelectorAll('[data-rtab]').forEach(b=>b.addEventListener('click',()=>markTab(b.dataset.rtab)));
+  markTab('draw');
+  // Info button reveals the info panel as a transient view
+  $('infoBtn') && $('infoBtn').addEventListener('click',()=>{
+    const ip=document.querySelector('[data-rpanel="info"]');
+    const showing = ip && !ip.hidden;
+    document.querySelectorAll('[data-rpanel]').forEach(pp=>pp.hidden=true);
+    if(showing){ // toggle back to draw
+      document.querySelector('[data-rpanel="draw"]').hidden=false; markTab('draw');
+      document.querySelectorAll('[data-rtab]').forEach(x=>x.classList.toggle('active',x.dataset.rtab==='draw'));
+    } else {
+      ip.hidden=false; markTab('info');
+      document.querySelectorAll('[data-rtab]').forEach(x=>x.classList.remove('active'));
+    }
+  });
+
+  /* drawers */
+  const rightPanel=$('rightPanel'), backdrop=$('backdrop');
+  function closeAll(){ rightPanel.classList.remove('open'); backdrop.classList.remove('show'); }
+  $('openRight').addEventListener('click',()=>{ rightPanel.classList.add('open'); backdrop.classList.add('show'); });
+  $('closeRight').addEventListener('click', closeAll);
+  backdrop.addEventListener('click', closeAll);
+  function checkMobile(){
+    const m = window.innerWidth<=900;
+    $('openRight').style.display = m?'flex':'none';
+    if(!m) closeAll();
+  }
+  window.addEventListener('resize', checkMobile);
+  checkMobile();
+  updateFormatUI();
+  syncUI();
+})();
+</script>
+</body>
+</html>
