@@ -1,29 +1,87 @@
-# Effektz
+# inhandz
 
-Effektz is a browser-based studio for applying generative, halftone-style visual effects to images and video. Pick one effect, dial it in, and export. Everything runs client-side — nothing you drop in ever leaves the browser.
+A hand-drawn sketch studio that turns any photo into ink, pencil, woodcut, screenprint or watercolour — entirely in the browser, in real time, with a WebGL shader. Nothing is uploaded, there is no account, and there is no watermark.
 
-## Features
+![inhandz](docs/preview.png)
 
-- **23 effects** across five families:
-  - **Halftone / mosaic** — Dots, Blockify, Facets, Rings, Beads, Voronoi
-  - **Type-based** — ASCII, Matrix Rain
-  - **Retro / glitch** — Dithering, Threshold, Pixel Sort, VHS, Glitch, Scan Damage
-  - **Photographic / distortion** — Film Grain, Glow, Edge Detection, Crosshatch, Pinch/Bulge, Chrome Swirl
-  - **Generative / pattern** — Kaleidoscope, Noise Burst, Wave Lines
-- **Presets** — quick-start parameter combinations on effects where they add real value (e.g. ASCII's Terminal/Binary character sets, Film Grain's Color Grain).
-- **Adjustments** — Contrast, Gamma, Brightness, Invert, applied before the effect runs.
-- **Color modes** — Original source colors, a solid foreground/background pair, or a 3-stop gradient (with presets: Ocean, Heat Map, Red Ring, Mono Tone).
-- **Image or video input** — drag and drop or click to browse; video is processed live, frame by frame.
-- **Export** as PNG, JPG, or **SVG** — effects built from discrete shapes (Dots, Blockify, Facets, Rings, ASCII, Matrix Rain, Dithering, Crosshatch, Beads, Voronoi) export as true vector markup; pixel-based effects (Glow, Film Grain, Threshold, Edge Detection, Pixel Sort, VHS) embed a rasterized image inside the SVG instead. Export resolution is independently selectable at 1x–4x the source, regardless of the on-screen preview size.
+## What it does
 
-## Usage
+Drop an image in and it is redrawn as if by hand. Every part of the look is a live control, so you can dial in exactly the treatment you want and export it as a PNG or JPG.
 
-Open `index.html` in any modern browser — no build step, no server, no dependencies. Drop an image or video onto the canvas, pick an effect from the left panel, adjust its settings on the right, and hit Download.
+### Stroke styles
+Cross-hatch · Stipple · Engraving · Outline · Woodcut · Needle pen · Coloured pencil · Spray · Soft graphite
+
+### Nibs
+Round · Chisel · Marker · Dry brush · Crayon · Fineliner — each reshapes the cross-section of every stroke.
+
+### Contour styles
+Clean · Tapered · Broken · Double · Stippled · Bold marker.
+
+### Colour
+- Full source-colour modes: **Tint**, **Flat fill**, **Screenprint**, plus posterize and hue scatter
+- Two-ink **duotone** blending
+- 8 colour themes (Riso, Blueprint, Newsprint, Cyanotype, and more) and a 16-swatch ink palette
+
+### Paper & finish
+- 6 paper stocks (wove, fibrous, cold press, canvas, recycled, crumpled)
+- Ruling: ruled, grid, dot grid, graph, isometric
+- Sheet edges: torn, burnt, cut — with real irregular silhouettes
+- Print finishes: letterpress emboss, misregister, photocopy degrade, speckle
+- Media: **watercolour** washes with bloom, granulation and edge darkening; film grain; noise wash
+
+### Workflow
+- One-click **Looks** (10 presets) and **Surprise me**
+- Split compare, hold **Space** to peek at the original, variations, undo/redo
+- Batch queue — drop several images, tune once, export all
+- Save / load your settings as a file
+- Zoom, pan, pinch, focus mode, full keyboard shortcuts
+
+## Running it
+
+It is a single self-contained HTML file — no build step, no dependencies.
+
+```bash
+# just open it
+open index.html
+```
+
+Or serve it locally:
+
+```bash
+python3 -m http.server 8000
+# then visit http://localhost:8000
+```
+
+### Deploy to GitHub Pages
+This repository ships with a workflow at `.github/workflows/pages.yml` that publishes to Pages without Jekyll. Push the repo, then in **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**. The next push to `main` will deploy automatically and give you a live URL in the workflow's Summary.
+
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `O` | Open image |
+| `⌘/Ctrl Z` | Undo / redo (with Shift) |
+| `C` | Split compare |
+| `Space` | Peek at original (hold) |
+| `L` | Cycle a look |
+| `S` | Surprise me |
+| `R` | New take |
+| `V` | Variations |
+| `⌘/Ctrl E` | Export |
+| `0` | Fit to screen |
+| `F` | Focus mode |
+| `Esc` | Close / dismiss |
+
+## How it works
+
+The image is uploaded to a texture and a single fragment shader does everything per-pixel: a Sobel pass finds contours, a hatch/stipple/wash system builds the shading, and a chain of paper, edge and print-finish effects composites the final sheet. The preview is rendered at the on-screen resolution (times a supersampling factor) so it never resamples into a moiré. Everything runs on the GPU, which is why it stays real-time no matter how many controls are stacked.
 
 ## Tech
 
-Single-file vanilla HTML/CSS/JS. Rendering is done with the Canvas 2D API. Sliders use a custom Pointer Events-driven drag implementation rather than native `<input type=range>` styling, for consistent cross-browser behavior. SVG export is generated by parallel shape-emitting functions that mirror the canvas renderers.
+- Plain HTML/CSS/JS, one file
+- WebGL 1 fragment shader (`OES_standard_derivatives`)
+- No frameworks, no network calls
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](LICENSE).
